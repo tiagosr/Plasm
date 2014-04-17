@@ -1,6 +1,6 @@
 #
-# Ruby Macro Assembler
-# (c)2011 Tiago Rezende
+# Playful Assembler
+# (c)2011-2014 Tiago Rezende
 #
 # Assembler directives
 #
@@ -22,6 +22,12 @@ module Assembler
   # Extend this class to support your processor and/or architecture.
   class Assembler
 
+    @@current = nil
+
+    def self.current
+      @@current
+    end
+    
     # push an operation to the linker list and execute it
     # only push the outermost closure in a chain, as it will
     # execute the inner ones in it's time
@@ -73,7 +79,7 @@ module Assembler
     end
 
     def assemble &block
-      temp = @@current
+      temp = @@current || nil
       @@current = self
       self.instance_eval &block
       link_phase
@@ -100,7 +106,9 @@ module Assembler
     # stores a new label for the assembly
     def label (name)
       if name.is_a? Symbol
-        __op ->{ current_section.tag_label name }
+        #__op ->{ self.current_section.tag_label name }
+        # won't need to do it twice, will we?
+        self.current_section.tag_label name
       else
         raise "label must be a symbol"
       end
@@ -116,7 +124,7 @@ module Assembler
     # in the block to that section
     def section (name, opts = {}, &block)
       sec = Section.new name, @current_mem_pos, opts
-      @sections << sec
+      @sections.push sec
       _push_section sec
       self.instance_eval &block
       _pop_section
@@ -162,9 +170,9 @@ module Assembler
           w.map!{|i| __dw(i)}
         else
           if @big_endian
-            __db [((w>>8) & 0xff), (w & 0xff)]
+            __db (w.to_i>>8).b, w.b
           else
-            __db [(w & 0xff),((w>>8) & 0xff)]
+            __db w.b, (w.to_i>>8).b
           end
         end
       end  
@@ -332,6 +340,32 @@ module Assembler
       struct = MemStruct.new label
       struct.instance_eval &block
       @structs[label] = struct
+    end
+
+    def link
+
+      self
+    end
+    def write_out filename, **opts
+      File.open(filename, "wb") do |f|
+        banknum = 0
+        bytecount = 0
+        debug = opts[:debug] || false
+        @rom_bank_map.banks.each do |bank|
+          bank_bytecount = 0
+          bank.write_out
+          puts "writing bank \##{banknum}" if debug
+          bank.image.each do |byte|
+            f.write_byte byte
+            bytecount += 1
+            bank_bytecount += 1
+          end
+          puts "written #{bank_bytecount} bytes for bank \##{banknum}" if debug
+          banknum += 1
+        end
+        puts "wrote #{banknum} banks and #{bytecount} bytes in total" if debug
+      end
+      self
     end
 
   end

@@ -72,11 +72,11 @@ class Z80 < Assembler
   end
   
   def self.__ld_rixm (offset)
-    -> asm, dest, src { asm.db 0xdd, offset, src.offset }
+    -> asm, dest, src { asm.db 0xdd, offset, src.distance_to(here) }
   end
   
   def self.__ld_riym (offset)
-    -> asm, dest, src { asm.db 0xfd, offset, src.offset }
+    -> asm, dest, src { asm.db 0xfd, offset, src.distance_to(here) }
   end
   
   def self.__ld_rixmm(offset)
@@ -224,7 +224,7 @@ class Z80 < Assembler
     [[HL], E   ] => __ld_rr(0x73),
     [[HL], H   ] => __ld_rr(0x74),
     [[HL], L   ] => __ld_rr(0x75),
-    [[HL], [HL]] => __ld_rr(0x76),
+    #[[HL], [HL]] => __ld_rr(0x76), # HALT
     [[HL], A   ] => __ld_rr(0x77),
     [[HL], ADDR] => __ld_rn(0x36),
     [[IX], B   ] => __ld_rixr(0x70),
@@ -248,11 +248,9 @@ class Z80 < Assembler
     [[ADDR], IX] => __ld_rixmm(0x22),
     [[ADDR], IY] => __ld_riymm(0x22),
     [BC, ADDR  ] => -> asm, dest, src { asm.db 0x01, src.lo_byte, src.hi_byte },
-    [BC, [ADDR]] => 0,
     [DE, ADDR  ] => -> asm, dest, src { asm.db 0x11, src.lo_byte, src.hi_byte },
-    [DE, [ADDR]] => 0,
     [HL, ADDR  ] => -> asm, dest, src { asm.db 0x21, src.lo_byte, src.hi_byte },
-    [HL, [ADDR]] => 0,
+    [HL, [ADDR]] => -> asm, dest, src { asm.db 0x23, src.lo_byte, src.hi_byte },
     [SP, ADDR  ] => -> asm, dest, src { asm.db 0x31, src.lo_byte, src.hi_byte },
     [SP, [ADDR]] => 0,
     [SP, HL    ] => __ld_rr(0xf9),
@@ -265,7 +263,7 @@ class Z80 < Assembler
     [IY, [ADDR]] => 0,
     [R, A      ] => -> asm, dest, src { asm.db 0xed, 0x5f }
   }
-  
+
 
   
   def self.single_byte **hash
@@ -342,6 +340,59 @@ class Z80 < Assembler
       raise "invalid mode"
     end
   end
+
+  ############ Logic/Arithmetic opcodes ###################
+  IMM = :immediate
+  def find_logic_arg_type arg
+    arg = IMM if arg.respond_to? :to_i
+    arg = [self.find_arg_type(arg[0])] if ((arg.is_a? Array) && (arg.length == 1))
+    arg
+  end
+
+  def self.logic_arith_ops table
+    table.each do |op, optypes|
+      define_method (op.to_s) do |dest, src=nil|
+        dest, src = A, dest if src.nil?
+        optype = [find_logic_arg_type(dest), find_logic_arg_type(src)]
+        if optypes.key? optype
+          optypes[optype].call self, dest, src
+        else
+          raise "invalid arguments for opcode #{op.to_s}"
+        end
+      end
+    end
+  end
+
+  def self._lop code
+    ->asm, dest, src { asm.db code }
+  end
+
+  def self._lopi code
+    ->asm, dest, src { asm.db code, src.if_within(-256, 255).b }
+  end
+
+  def self._cb code
+    ->asm, dest, src { asm.db 0xcb, code }
+  end
+
+  logic_arith_ops {
+    add:  { [A, B]=>_lop(0x80), [A, C]=>_lop(0x81), [A, D]=>_lop(0x82),    [A, E]=>_lop(0x83),
+            [A, H]=>_lop(0x84), [A, L]=>_lop(0x85), [A, [HL]]=>_lop(0x86), [A, A]=>_lop(0x87), [A, IMM]=>_lopi(0xc6), [HL, BC]=>0x09, [HL, DE]=>0x19, [HL, HL]=>0x29, [HL, SP]=>0x39 },
+    adc:  { [A, B]=>_lop(0x88), [A, C]=>_lop(0x89), [A, D]=>_lop(0x8A),    [A, E]=>_lop(0x8B),
+            [A, H]=>_lop(0x8C), [A, L]=>_lop(0x8D), [A, [HL]]=>_lop(0x8E), [A, A]=>_lop(0x8F), [A, IMM]=>_lopi(0xce) },
+    sub:  { [A, B]=>_lop(0x90), [A, C]=>_lop(0x91), [A, D]=>_lop(0x92),    [A, E]=>_lop(0x93),
+            [A, H]=>_lop(0x94), [A, L]=>_lop(0x95), [A, [HL]]=>_lop(0x96), [A, A]=>_lop(0x97), [A, IMM]=>_lopi(0xd6) },
+    sbc:  { [A, B]=>_lop(0x98), [A, C]=>_lop(0x99), [A, D]=>_lop(0x9A),    [A, E]=>_lop(0x9B),
+            [A, H]=>_lop(0x9C), [A, L]=>_lop(0x9D), [A, [HL]]=>_lop(0x9E), [A, A]=>_lop(0x9F), [A, IMM]=>_lopi(0xde) },
+    _and: { [A, B]=>_lop(0xa0), [A, C]=>_lop(0xa1), [A, D]=>_lop(0xa2),    [A, E]=>_lop(0xa3),
+            [A, H]=>_lop(0xa4), [A, L]=>_lop(0xa5), [A, [HL]]=>_lop(0xa6), [A, A]=>_lop(0xa7), [A, IMM]=>_lopi(0xe6) },
+    _xor: { [A, B]=>_lop(0xa8), [A, C]=>_lop(0xa9), [A, D]=>_lop(0xaa),    [A, E]=>_lop(0xab),
+            [A, H]=>_lop(0xac), [A, L]=>_lop(0xad), [A, [HL]]=>_lop(0xae), [A, A]=>_lop(0xaf), [A, IMM]=>_lopi(0xee) },
+    _or:  { [A, B]=>_lop(0xb0), [A, C]=>_lop(0xb1), [A, D]=>_lop(0xb2),    [A, E]=>_lop(0xb3),
+            [A, H]=>_lop(0xb4), [A, L]=>_lop(0xb5), [A, [HL]]=>_lop(0xb6), [A, A]=>_lop(0xb7), [A, IMM]=>_lopi(0xf6) },
+    cp:   { [A, B]=>_lop(0xb8), [A, C]=>_lop(0xb9), [A, D]=>_lop(0xba),    [A, E]=>_lop(0xbb),
+            [A, H]=>_lop(0xbc), [A, L]=>_lop(0xbd), [A, [HL]]=>_lop(0xbe), [A, A]=>_lop(0xbf), [A, IMM]=>_lopi(0xfe) },
+  }
   
 
 
@@ -392,22 +443,15 @@ class Z80 < Assembler
     if COND_CODES.include?(vars[0])
       disp = vars[1]
     else
-      disp = vars[1]
-      if disp.is_a?(Address)
-        disp = disp.value
-      end
+      disp = vars[0]
       if disp.is_a?(Register)
-        case disp[0]
+        case disp
         when HL then db 0xe9
         when IX then db 0xdd, 0xe9
         when IY then db 0xfd, 0xe9
         end
-      elsif disp.is_a?(Fixnum)
-        db 0xc3
-        dw disp
-      elsif disp.is_a?(Symbol)
-        db 0xc3
-        __label_ref_abs dest, 2
+      elsif disp.respond_to? :to_i
+        db 0xc3, disp.lo_byte, disp.hi_byte
       else
         raise "invalid argument for relative jump"
       end
@@ -433,85 +477,14 @@ class Z80 < Assembler
   
   ############ single-byte register parameter opcodes ###########
   def ex (r1, r2)
-    if (AF == r1) && (AF == r2)
-      db 0x08
-    elsif r1.is_a? Array
-      if (SP == r1[0]) && (HL == r2)
-        db 0xe3
-      else
-        raise "invalid parameters"
-      end
-    elsif (DE == r1) && (HL == r2)
-      db 0xeb
-    else
-      raise "invalid parameters"
+    args = [r1, r2]
+    case args
+    when [AF, AF] then db 0x08
+    when [[SP], HL] then db 0xe3
+    when [DE, HL] then db 0xeb
+    else raise "invalid parameters"
     end
   end
-  
-  REG8_DISPS = {B=>0, C=>1, D=>2, E=>3, H=>4, L=>5, [HL]=>6, A=>7}
-  REG16_DISPS = {BC=>0, DE=>0x10, HL=>0x20, SP=>0x30}
-  
-  def __a_op(offset, src)
-    if REG8_DISPS.include? src
-      offset+REG8_DISPS[src]
-    elsif src.is_a? Number
-      offset
-    else
-      raise "invalid source register"
-    end
-  end
-  def __hl_op(offset, src)
-    if REG16_DISPS.include? src
-      return offset+REG16_DISPS[src]
-    elsif src.is_a? Number
-      return offset+0x46, src
-    else
-      raise "invalid source register"
-    end
-  end
-  def __ix_op(offset, src)
-    if IX===src
-      src = HL # temporary substitution
-    end
-    return 0xdd, __hl_op(offset,src)
-  end
-  def __iy_op(offset, src)
-    if IY===src
-      src = HL # temporary substitution
-    end
-    return 0xfd, __hl_op(offset,src)
-  end
-  
-  def add(dest,src)
-    case dest
-    when A then db __a_op(0x80,src)
-    when HL then db __hl_op(0x09,src)
-    when IX then db __ix_op(0x09,src)
-    when IY then db __iy_op(0x09,src)
-    else raise "invalid destination"
-    end
-  end
-  
-  def adc(dest,src)
-    db __a_op(0x88,src) 
-  end
-  
-  def sub(src); db __a_op(0x90,src) end
-  
-  def sbc(dest,src)
-    case dest
-    when A then db __a_op(0x98,dest,src)
-    when HL then db 0xed, __hl_op(0x02,src)
-    when IX then db 0xdd, __ix_op(0x02,src)
-    when IY then db 0xfd, __iy_op(0x02,src)
-    else
-      raise "invalid destination"
-    end
-  end
-  
-  def and(src); db __a_op(0xa0,src) end
-  
-  def cp(src); db __a_op(0xa8,src) end
   
   def push (reg)
     case reg
