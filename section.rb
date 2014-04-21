@@ -14,6 +14,8 @@ module Assembler
         @return_org = nil
       end
 
+      @anonymous_labels = []
+      @current_anonymous_label = 0
       @labels = {}
       @data = []
       @org_offset = 0
@@ -56,7 +58,39 @@ module Assembler
       if @labels.key? name
         raise "repeated label #{name} within section #{@name}"
       else
-        @labels[name] = @origin + @cursor + @org_offset
+        @labels[name] = @origin+@cursor+@org_offset
+      end
+    end
+
+    def get_label(name)
+      label = nil
+      if @labels.key? name
+        label = Label.new @labels[name]
+      else
+        unless @parent.nil?
+          label = @parent.get_label name
+        end
+        if label.nil?
+          if Assembler.current.state == :linking
+            raise "label #{name} not found"
+          end
+        end
+      end
+      label
+    end
+
+    def tag_anonymous_label_back
+      label_name = "+anonymous_#{@name}_#{@current_anonymous_label}"
+      tag_label label_name
+      @anonymous_labels.push label_name
+      @current_anonymous_label += 1
+    end
+
+    def get_anonymous_label level
+      if Assembler.current.state == :linking
+        return get_label @anonymous_labels[@current_anonymous_label+offset-1]
+      else
+        return LabelPromise.new @anonymous_labels[level]
       end
     end
 
