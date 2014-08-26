@@ -10,7 +10,7 @@ require "z80"
 project = Assembly.Z80.new
 project.asm do
 	jp :Start			# label reference
-	org 100				# set origin
+	org 0x100			# set origin
 	
 	__ :Start			# label definition
 	ld A, [:SomeData] 	# load with a label reference
