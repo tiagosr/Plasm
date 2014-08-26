@@ -119,6 +119,11 @@ module Assembler
     def __ (name)
       label name
     end
+
+    # anonymous forward label
+    def __f (level = 0)
+      self.current_section.tag_anonymous_label
+    end
     
     # defines a new section, and scopes the operations
     # in the block to that section
