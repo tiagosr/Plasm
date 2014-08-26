@@ -4,242 +4,39 @@
 #
 #
 
+require "rubygems"
+require "parslet"
+
 require "./assembler"
 
 module Assembler
 
   class C6502 < Assembler
-    X = Register.new(:X)
-    Y = Register.new(:Y)
 
-    def self.single_byte hash
-      hash.each do |insn, byte|
-        define_method (insn.to_s) do
-          # no need to envelope in __op
-          db byte
-        end
-      end
+    class C6502AsmSpecParser < Assembler::AssemblerParser
+      rule(:asm6502) { match['A-Z'].repeat(1)}
     end
 
-    def self.two_byte_rel_offset hash
-      hash.each do |insn, byte|
-        define_method (insn.to_s) do |offset|
-          if offset.is_a? Fixnum
-            db byte, offset.if_within(-128, 127).b
-          else
-            __try_op ->{
-              db byte, offset.distance_to(here).if_within(-128, 127)
-            }
-          end
-        end
-      end
-    end
-
-    def self.mode_addressable hash
-      hash.each do |insn, modes|
-        define_method (insn.to_s) do |arg|
-          if (arg.is_a? Hash) and (arg.key? :type)
-            if modes.key? arg[:type] and !modes[arg[:type]].nil?
-              case arg[:type]
-              when :zp
-                __try_op ->{ db modes[:zp], arg[:index].if_within(0, 255).b }
-              when :zp_x
-                __try_op ->{ db modes[:zp_x], arg[:index].if_within(0, 255).b }
-              when :zp_y
-                __try_op ->{ db modes[:zp_y], arg[:index].if_within(0, 255).b }
-              when :ind_x
-                __try_op ->{ db modes[:ind_x], arg[:index].if_within(0, 255).b }
-              when :ind_y
-                __try_op ->{ db modes[:ind_y], arg[:index].if_within(0, 255).b }
-              when :abs
-                __try_op ->{ db modes[:abs]; dw arg[:address].if_within(0, 65536).w }
-              when :ind
-                __try_op ->{ db modes[:ind]; dw arg[:address].if_within(0, 65536).w }
-              when :rel
-                __try_op ->{ db modes[:rel]; dw arg[:offset].if_within(-32768, 32767).w }
-              when :abs_x
-                __try_op ->{ db modes[:abs_x]; dw arg[:address].if_within(0, 65536).w }
-              when :abs_y
-                __try_op ->{ db modes[:abs_y]; dw arg[:address].if_within(0, 65536).w }
-              else
-                raise "invalid type #{arg[:type].to_s} for instruction #{insn.to_s}"
-              end
-            else
-              raise "unknown mode for instruction #{insn.to_s}"
-            end
-          elsif arg.to_i.is_a? Fixnum
-            if modes[:imm] != nil
-              __try_op ->{ db modes[:imm], arg.if_within(-256, 255).b }
-            else
-              raise "instruction #{insn.to_s} doesn't work with immediate values"
-            end
-          else
-            raise "invalid argument for instruction #{insn.to_s}"
-          end
-        end
-      end
-    end
-
-
-    def self.make_argument_type_alias name, args
-      define_method name.to_s do *inner_args
-        if args.length != inner_args.length
-          raise "invalid number of arguments for #{name.to_s}"
-        end
-        return Hash[args.zip(inner_args)].merge(:type => name)
-      end
-      name
-    end
-
-    
-    #################### opcode argument/mode generators
-
-    NON = make_argument_type_alias :none  []
-    IMM = make_argument_type_alias :imm   [:immediate]
-    ZP  = make_argument_type_alias :zp,    [:index]
-    ZPX = make_argument_type_alias :zp_x,  [:index]
-    ZPY = make_argument_type_alias :zp_y,  [:index]
-    IND = make_argument_type_alias :ind,   [:index]
-    INX = make_argument_type_alias :ind_x, [:index]
-    INY = make_argument_type_alias :ind_y, [:index]
-    REL = make_argument_type_alias :rel,   [:offset]
-    ABS = make_argument_type_alias :abs,   [:address]
-    ABX = make_argument_type_alias :abs_x, [:address]
-    ABY = make_argument_type_alias :abs_y, [:address]
-
-    #################### Single-byte no-argument opcodes
-    single_byte {
-      php: 0x08,
-      clc: 0x16,
-      plp: 0x28,
-      sec: 0x38,
-      rti: 0x40,
-      pha: 0x48,
-      cli: 0x58,
-      rts: 0x60,
-      pla: 0x68,
-      sei: 0x78,
-      dey: 0x88,
-      txa: 0x8a,
-      tya: 0x98,
-      txs: 0x9a,
-      tay: 0xa8,
-      tax: 0xaa,
-      clv: 0xb8,
-      tsx: 0xba,
-      iny: 0xc8,
-      dex: 0xca,
-      cld: 0xd8,
-      inx: 0xe8,
-      nop: 0xea,
-      sed: 0xf8,
-      phy: 0x5a,
-      ply: 0x7a,
-      phx: 0xda,
-      plx: 0xfa,
-      wdm: 0x42,
-    }
-
-    #################### Two-byte immediate-argument opcodes
-    
-    two_byte_rel_offset [
-      bpl: 0x10,
-      bmi: 0x30,
-      bvc: 0x50,
-      bvs: 0x70,
-      bra: 0x80,
-      bcc: 0x90,
-      bcs: 0xb0,
-      bne: 0xd0,
-      beq: 0xf0
-    ]
-
-    def bit(num); db 0x89, num.if_within(0, 7) end
-
-    def jsr(addr)
-      if addr.is_a? Fixnum
-        db 0x20;
-        dw addr.if_within(0, 65535).w
+    def decode_word (string)
+      /($(?<hex>[0-9A-F]+)|(?<dec>[0-9]+))(\.W)?/i =~ string
+      if !hex.isNil?
+        return hex
+      elsif !dec.isNil?
+        return dec
       else
-        __try_op ->{
-          db 0x20;
-          dw addr.absolute.if_within(0, 65535)
-        }
+        raise "invalid number"
       end
     end
-    #################### mode-addressable opcodes
-    
 
-    mode_addressable {
-      sta: {           zp: 0x85, zp_x: 0x95,            abs: 0x8d, abs_x: 0x9d, abs_y: 0x99, ind_x: 0x81, ind_y: 0x91},
-      lda: {imm: 0xa9, zp: 0xa5, zp_x: 0xb5,            abs: 0xad, abs_x: 0xbd, abs_y: 0xb9, ind_x: 0xa1, ind_y: 0xb1},
-      stx: {           zp: 0x86,             zp_y:0x96, abs: 0x87,                                                   },
-      ldx: {imm: 0xa2,           zp_x: 0xa6, zp_y:0xb6,            abs_x: 0xae, abs_y: 0xbe,                         },
-      sty: {           zp: 0x84, zp_x: 0x94,            abs: 0x8c,                                                   },
-      ldy: {imm: 0xa0, zp: 0xa4,             zp_y:0xb4, abs: 0xbc,              abs_y: 0xbe,                         },
-      ora: {imm: 0x09, zp: 0x05, zp_x: 0x15,            abs: 0x0D, abs_x: 0x1d, abs_y: 0x19, ind_x: 0x01, ind_y: 0x11},
-      _and:{imm: 0x29, zp: 0x25, zp_x: 0x35,            abs: 0x2d, abs_x: 0x3d, abs_y: 0x39, ind_x: 0x21, ind_y: 0x31},
-      eor: {imm: 0x49, zp: 0x45, zp_x: 0x55,            abs: 0x4d, abs_x: 0x5d, abs_y: 0x59, ind_x: 0x41, ind_y: 0x51},
-      cmp: {imm: 0xc9, zp: 0xc5, zp_x: 0xd5,            abs: 0xcd, abs_x: 0xdd, abs_y: 0xd9, ind_x: 0xc1, ind_y: 0xd1},
-      cpx: {imm: 0xe0, zp: 0xe4,                        abs: 0xec,                                                   },
-      cpy: {imm: 0xc0, zp: 0xc4,                        abs: 0xcc,                                                   },
-      adc: {imm: 0x69, zp: 0x65, zp_x: 0x75,            abs: 0x6d, abs_x: 0x7d, abs_y: 0x79, ind_x: 0x61, ind_y: 0x71},
-      sbc: {imm: 0xe9, zp: 0xe5, zp_x: 0xf5,            abs: 0xed, abs_x: 0xfd, abs_y: 0xf9, ind_x: 0xe1, ind_y: 0xf1},
-      jmp: {                                            abs: 0x4c, abs_x: 0x7c,                                      },
-      inc: {           zp: 0xe6, zp_x: 0xf6,            abs: 0xee, abs_x: 0xfe,                                      },
-      dec: {           zp: 0xc6, zp_x: 0xd6,            abs: 0xce, abs_x: 0xde,                                      }
-    }
-
-
-
-    OPCODE_TABLE_BY_CODE = [
-      #00-1f
-      {brk: NON}, {ora: INX}, {kil: NON}, {slo: INX}, {nop: ZP }, {ora: ZP }, {asl: ZP }, {slo: ZP },
-      {php: NON}, {ora: IMM}, {asl: NON}, {anc: IMM}, {nop: ABS}, {ora: ABS}, {asl: ABS}, {slo: ABS},
-      {bpl: REL}, {ora: INY}, {kil: NON}, {slo: INY}, {nop: ZPX}, {ora: ZPX}, {asl: ZPX}, {slo: ZPX},
-      {clc: NON}, {ora: ABY}, {nop: NON}, {slo: ABY}, {nop: ABX}, {ora: ABX}, {asl: ABX}, {slo: ABX},
-      #20-3f
-      {jsr: ABS}, {_and: INX}, {kil: NON}, {rla: INX}, {bit: ZP }, {_and: ZP }, {rol: ZP }, {rla: ZP },
-      {plp: NON}, {_and: IMM}, {rol: NON}, {anc: IMM}, {bit: ABS}, {_and: ABS}, {rol: ABS}, {rla: ABS},
-      {bmi: REL}, {_and: INY}, {kil: NON}, {rla: INY}, {nop: ZPX}, {_and: ZPX}, {rol: ZPX}, {rla: ZPX},
-      {sec: NON}, {_and: ABY}, {nop: NON}, {rla: ABY}, {nop: ABX}, {_and: ABX}, {rol: ABX}, {rla: ABX},
-      #40-5f
-      {rti: NON}, {eor: INX}, {kil: NON}, {sre: INX}, {nop: ZP }, {eor: ZP }, {lsr: ZP }, {sre: ZP },
-      {pha: NON}, {eor: IMM}, {lsr: NON}, {alr: IMM}, {jmp: ABS}, {eor: ABS}, {lsr: ABS}, {sre: ABS},
-      {bvc: REL}, {eor: INY}, {kil: NON}, {sre: INY}, {nop: ZPX}, {eor: ZPX}, {lsr: ZPX}, {sre: ZPX},
-      {cli: NON}, {eor: ABY}, {nop: NON}, {sre: ABY}, {nop: ABX}, {eor: ABX}, {lsr: ABX}, {sre: ABX},
-      #60-7f
-      {rts: NON}, {adc: INX}, {kil: NON}, {rra: INX}, {nop: ZP }, {adc: ZP }, {asl: ZP }, {rra: ZP },
-      {pla: NON}, {adc: IMM}, {asl: NON}, {arr: IMM}, {jmp: IND}, {adc: ABS}, {asl: ABS}, {rra: ABS},
-      {bvs: REL}, {adc: INY}, {kil: NON}, {rra: INY}, {nop: ZPX}, {adc: ZPX}, {asl: ZPX}, {rra: ZPX},
-      {sei: NON}, {adc: ABY}, {nop: NON}, {rra: ABY}, {nop: ABX}, {adc: ABX}, {asl: ABX}, {rra: ABX},
-      #80-9f
-      {nop: IMM}, {sta: INX}, {nop: IMM}, {sax: INX}, {nop: ZP }, {sta: ZP }, {stx: ZP }, {sax: ZP },
-      {dei: NON}, {sta: IMM}, {asl: NON}, {xaa: IMM}, {sty: ABS}, {sta: ABS}, {stx: ABS}, {sax: ABS},
-      {bcc: REL}, {sta: INY}, {kil: NON}, {ahx: INY}, {nop: ZPX}, {sta: ZPX}, {stx: ZPY}, {sax: ZPX},
-      {tya: NON}, {sta: ABY}, {nop: NON}, {tas: ABY}, {shy: ABX}, {sta: ABX}, {shx: ABY}, {ahx: ABX},
-      #a0-bf
-      {ldy: IMM}, {lda: INX}, {ldx: IMM}, {sax: INX}, {ldy: ZP }, {lda: ZP }, {ldx: ZP }, {lax: ZP },
-      {tay: NON}, {lda: IMM}, {lax: NON}, {xaa: IMM}, {ldy: ABS}, {lda: ABS}, {ldx: ABS}, {lax: ABS},
-      {bcs: REL}, {lda: INY}, {kil: NON}, {ahx: INY}, {ldy: ZPX}, {lda: ZPX}, {ldx: ZPY}, {lax: ZPX},
-      {clv: NON}, {lda: ABY}, {lax: IMM}, {tas: ABY}, {ldy: ABX}, {lda: ABX}, {ldx: ABY}, {lax: ABX},
-      #c0-df
-      {cpy: IMM}, {cmp: INX}, {nop: IMM}, {dcp: INX}, {cpy: ZP }, {cmp: ZP }, {dec: ZP }, {dcp: ZP },
-      {iny: NON}, {cmp: IMM}, {dex: NON}, {axs: IMM}, {cpy: ABS}, {cmp: ABS}, {dec: ABS}, {dcp: ABS},
-      {bne: REL}, {cmp: INY}, {kil: NON}, {dcp: INY}, {nop: ZPX}, {cmp: ZPX}, {dec: ZPY}, {dcp: ZPX},
-      {cld: NON}, {cmp: ABY}, {nop: NON}, {dcp: ABY}, {nop: ABX}, {cmp: ABX}, {dec: ABY}, {dcp: ABX},
-      #e0-ff
-      {cpx: IMM}, {sbc: INX}, {nop: IMM}, {isc: INX}, {cpx: ZP }, {sbc: ZP }, {inc: ZP }, {isc: ZP },
-      {inx: NON}, {sbc: IMM}, {nop: NON}, {sbc: IMM}, {cpx: ABS}, {sbc: ABS}, {inc: ABS}, {isc: ABS},
-      {beq: REL}, {sbc: INY}, {kil: NON}, {isc: INY}, {nop: ZPX}, {sbc: ZPX}, {inc: ZPY}, {isc: ZPX},
-      {sed: NON}, {sbc: ABY}, {nop: NON}, {isc: ABY}, {nop: ABX}, {sbc: ABX}, {inc: ABY}, {isc: ABX},
-    ]
-
-
-    def decode_number (string)
-      /$[0-9A-F]+\.W/i
-      /$[0-9A-F]+\.B/i
-      /[0-9]+/i
+    def decode_byte (string)
+      /($(?<hex>[0-9A-F]+)|(?<dec>[0-9]+))(\.B)?/i =~ string
+      if !hex.isNil?
+        return hex
+      elsif !dec.isNil?
+        return dec
+      else
+        raise "invalid number"
+      end
     end
 
     ARGUMENT_READERS = {
@@ -256,6 +53,10 @@ module Assembler
       rel:  -> asm, bytecode, tokens { asm.db bytecode, tokens[0].relative_to(asm.here).b },
       bbit: -> asm, bytecode, tokens { asm.db bytecode, tokens[0].b, tokens[1].b }
     ]
+
+    def self.make_matcher()
+
+    end
 
     # adapted from the WLA-DX 6502 tables
     INSN_TABLE_6502 = [

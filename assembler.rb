@@ -5,6 +5,9 @@
 # Assembler directives
 #
 
+require "rubygems"
+require "parslet"
+require "parslet/convenience"
 
 require "./memory"
 require "./register"
@@ -12,15 +15,98 @@ require "./label"
 require "./section"
 require "./number_addons"
 
+class Parslet::Atoms::Context
+  def _____lookup(obj, pos)
+    p obj
+    @cache[pos][obj]
+  end
+end
+
 
 module Assembler
-
 
   # The Assembler class
   #
   # Defines the standard functionality of each assembler.
   # Extend this class to support your processor and/or architecture.
   class Assembler
+
+    class OpcodeParser < Parslet::Parser
+      rule(:spaces) { match('[ \t]').repeat(1).as(:spaces) }
+      rule(:spaces?) { spaces.maybe }
+      rule(:comma) { spaces? >> str(',').as(:comma) >> spaces? }
+      rule(:paren_open) { str('(').as(:spaced) }
+      rule(:paren_close) { str(')').as(:spaced) }
+      rule(:bracket_open) { str('[').as(:spaced) }
+      rule(:bracket_close) { str(']').as(:spaced) }
+      rule(:curly_open) { str('{').as(:spaced) }
+      rule(:curly_close) { str('}').as(:spaced) }
+      rule(:string_match) { match("[A-Z0-9_\\.]").repeat(1).as(:text) }
+      rule(:wildcard_match) { match("[a-z?!%$\\#]").as(:wildcard) }
+      rule(:opcode) { string_match >> (wildcard_match | string_match |
+                                       paren_open | paren_close |
+                                       bracket_open | bracket_close |
+                                       curly_open | curly_close |
+                                       comma | spaces).repeat(0) }
+    end
+
+    class OpcodeRecognizer < Parslet::Transform
+      rule(:comma => simple(:x)) {
+        parser.comma
+      }
+      rule(:spaces => simple(:x)) {
+        parser.spaces
+      }
+      rule(:spaced => simple(:c)) {
+        parser.spaces? >> parser.str(c) >> parser.spaces?
+      }
+      rule(:text => simple(:txt)) {
+        parser.str(txt)
+      }
+      rule(:wildcard => simple(:char)) {
+        wildcards[char].(parser)
+      }
+    end
+
+    class AssemblerParser < Parslet::Parser
+      rule(:multiline_comment) { str("/*") >> match("^[*/]") >> str("*/") }
+      rule(:singleline_comment) { (str("//") | str("#") | str(";")) >> match("^[\\n]") }
+      rule(:space) { multiline_comment | singleline_comment | match('[ \t]') }
+      rule(:spaces) { space.repeat(1) }
+      rule(:spaces?) { space.repeat(0) }
+      rule(:eol) { spaces? >> str("\n") }
+      rule(:eof) { space.repeat(0) >> any.absent? }
+      rule(:comma) { spaces? >> str(',') >> spaces? }
+      rule(:label_id) { match("[a-zA-Z_][a-zA-Z0-9_]*") }
+      rule(:label) { label_id.as(:label) >> str(":") }
+      rule(:value_statement) { random }
+      rule(:dec_number) { match("[0-9]").repeat(1).as(:dec) }
+      rule(:hex_number) { (str("0x")|str("0X")|str("$")) >> match("[0-9A-Fa-f]").repeat(1).as(:hex) }
+      rule(:bin_number) { match("[01]").repeat(1).as(:bin) >> match("[bB]") }
+      rule(:expression) { ( str("(") >> expression >> str(")")) | label_id | bin_number | hex_number | dec_number | multiplication | addition }
+      rule(:binary_or) { expression.as(:a) >> spaces? >> str("|").as(:op) >> spaces? >> expression.as(:b) >> spaces? }
+      rule(:binary_and) { expression.as(:a) >> spaces? >> str("&").as(:op) >> spaces? >> expression.as(:b) >> spaces? }
+      rule(:binary_xor) { expression.as(:a) >> spaces? >> str("^").as(:op) >> spaces? >> expression.as(:b) >> spaces? }
+      rule(:multiplication)  { expression.as(:a) >> spaces? >> (str("*") | str("/")).as(:op) >> spaces? >> expression.as(:b) }
+      rule(:addition) { expression.as(:a) >> spaces? >> (str("+") | str("-")).as(:op) >> spaces? >> expression.as(:b) }
+      rule(:db) { str("db") >> spaces >> expression.as(:argument) >> (comma >> expression.as(:argument)).repeat(0) }
+      rule(:dw) { str("dw").as(:instruction) >> spaces >> expression.as(:argument) >> (comma >> expression.as(:argument)).repeat(0) }
+      rule(:dd) { str("dd").as(:instruction) >> spaces >> expression.as(:argument) >> (comma >> expression.as(:argument)).repeat(0) }
+      rule(:org) { str("org").as(:keyword) >> spaces >> expression.as(:argument) }
+      rule(:instruction) { db | dw | dd }
+      rule(:keyword) { org }
+      def self.add_instruction insn
+        insn_rule = @rules[:instruction]
+        @rules.delete(:instruction)
+        rule(:instruction) { insn_rule | insn }
+      end
+
+      rule(:program_statement_item) { instruction.as(:instruction) | keyword.as(:keyword) }
+      rule(:program_statement) { spaces? >> ((label.as(:label) >> spaces? >> program_statement_item.as(:statement)) | label.as(:label) | program_statement_item.as(:statement)) >> singleline_comment.maybe }
+      rule(:program) { (program_statement.as(:statement) | eol).repeat(1) >> eof }
+
+      root :program
+    end
 
     @@current = nil
 
@@ -90,6 +176,18 @@ module Assembler
       assemble &block
     end
 
+    def parse_str str
+      parser = AssemblerParser.new
+      return parser.parse_with_debug(str)
+    end
+
+    def asm_parsed parsed
+
+    end
+
+    def asm_str str
+      asm_parsed parse_str str
+    end
     # org
     # sets origin address for opcode outputs and label addresses
     def org (address)
