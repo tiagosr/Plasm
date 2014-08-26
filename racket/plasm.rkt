@@ -154,84 +154,23 @@
    big-endian
    recognizer))
 
-(define (65imm? n)
-  (number? n))
-(define (65addr? n)
-  (number? n))
-(define (65rel? n)
-  (number? n))
+(define %architectures (make-hash))
+
+(define (architecture name endianess recognizer)
+  (let [(arch (%architecture name endianess recognizer))]
+    (hash-set! %architectures name arch)))
 
 (define @ 0)
 (define (@@ n)
   (- n @))
 
-(define (65imm op n)
-  (db op n))
-(define (65addr op n)
-  (db op (asm-b 0 n) (asm-b 1 n)))
-(define (65rel op n)
-  (db op (@@ n)))
-
-
-(%architecture
- '6502 #f
-  (match-lambda
-    [`(adc ,(? 65imm? n))        (65imm #x65 n)]
-    [`(adc $,(? 65imm? n))       (65imm #x69 n)]
-    [`(adc (,(? 65imm? n) x))    (65imm #x61 n)]
-    [`(adc (,(? 65imm? n)) y)    (65imm #x71 n)]
-    [`(adc (,(? 65imm? n)))      (65imm #x72 n)]
-    [`(adc ,(? 65imm? n) x)      (65imm #x75 n)]
-    [`(adc @,(? 65addr? n) x)    (65addr #x7D n)]
-    [`(adc @,(? 65addr? n) y)    (65addr #x79 n)]
-    [`(adc @,(? 65addr? n))      (65addr #x6D n)]
-    
-    [`(and ,(? 65imm? n))        (65imm #x25 n)]
-    [`(and $,(? 65imm? n))       (65imm #x29 n)]
-    [`(and (,(? 65imm? n) x))    (65imm #x21 n)]
-    [`(and (,(? 65imm? n)) y)    (65imm #x31 n)]
-    [`(and (,(? 65imm? n)))      (65imm #x32 n)]
-    [`(and ,(? 65imm? n) x)      (65imm #x35 n)]
-    [`(and @,(? 65addr? n) x)    (65addr #x3D n)]
-    [`(and @,(? 65addr? n) y)    (65addr #x39 n)]
-    [`(and @,(? 65addr? n))      (65addr #x2D n)]
-    
-    [`(asl a)                    (db #x0a)]
-    [`(asl ,(? 65imm? n) x)      (db #x16 n)]
-    [`(asl @,(? 65addr? n) x)    (65addr #x1e n)]
-    [`(asl ,(? 65imm? n))        (db #x06 n)]
-    [`(asl @,(? 65addr? n))      (65addr #x0e n)]
-    
-    [`(asl)                      (db #x0a)]
-    
-    [`(bcc ,(? 65rel? n))        (65rel #x90 n)]
-    [`(bcs ,(? 65rel? n))        (65rel #xb0 n)]
-    [`(beq ,(? 65rel? n))        (65rel #xf0 n)]
-    [`(bmi ,(? 65rel? n))        (65rel #x30 n)]
-    [`(bne ,(? 65rel? n))        (65rel #xd0 n)]
-    [`(bpl ,(? 65rel? n))        (65rel #x10 n)]
-    [`(bvc ,(? 65rel? n))        (65rel #x50 n)]
-    [`(bvs ,(? 65rel? n))        (65rel #x70 n)]
-    [`(bra ,(? 65rel? n))        (65rel #x80 n)]
-    
-    [`(bit ,(? 65imm? n))        (65imm #x24 n)]
-    [`(bit $,(? 65imm? n))       (65imm #x89 n)]
-    [`(bit (,(? 65imm? n)))      (65imm #x32 n)]
-    [`(bit ,(? 65imm? n) x)      (65imm #x34 n)]
-    [`(bit @,(? 65addr? n) x)    (65addr #x3C n)]
-    [`(bit @,(? 65addr? n))      (65addr #x2C n)]
-
-    [`(brk ,(? 65imm? n))        (65imm #x00 n)]
-    [`(brk)                      (db 0)]
-
-    [`(clc)                      (db #x18)]
-    [`(cld)                      (db #xd8)]
-    [`(cli)                      (db #x58)]
-    [`(clv)                      (db #x68)]
-      
-    ))
+(define (label-code code labels)
+  code)
 
 (define (asm arch code)
-  (let [(label-refs (look-for-labels code))]
-    (display label-refs)))
+  (let* [(label-refs (look-for-labels code))
+         (labeled-code (label-code code label-refs))
+         (recognizer (%architecture-recognizer (hash-ref %architectures arch)))]
+    (for-each recognizer labeled-code)))
 
+(provide (all-defined-out))
