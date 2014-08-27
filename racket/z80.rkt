@@ -2,83 +2,178 @@
 
 (require "plasm.rkt")
 
-(define (z80b? n)
+(define (zb? n)
   (number? n))
 
-(define (z80b op n)
+(define (zb op n)
   (db op n))
 
-(define (z80w? n)
+(define (zw? n)
+  (number? n))
+(define (za? n)
   (number? n))
 
-(define (z80w op n)
+(define (zw op n)
   (db op (asm-b 0 n) (asm-b 1 n)))
 
-(define (z80rel? n)
+(define (zrel? n)
   (number? n))
 
-(define (z80rel op n)
+(define (zrel op n)
   (db op (->@ n)))
+
+(define (zdd op)
+  (db #xdd op))
+(define (zddb op b)
+  (db #xdd op b))
+(define (zdds op i)
+  (db #xdd op i))
+(define (zddsb op i b)
+  (db #xdd op i b))
+(define (zfd op)
+  (db #xfd op))
+(define (zfdb op b)
+  (db #xfd op b))
+(define (zfds op i)
+  (db #xfd op i))
+(define (zfdsb op i b)
+  (db #xfd op i b))
+
+(define (between? upper n lower)
+  (if (> n lower)
+      (if (< n upper)
+          #t
+          #f)
+      #f))
+(define (zoff? i)
+  (if (number? i)
+      (if (between? -128 i 127)
+          #t
+          #f)
+      #f))
+
 
 (architecture
  'z80 #f
   (match-lambda
     [`(nop)       (db #x00)]
     
-    [`(ld b b)    (db #x40)]
-    [`(ld b c)    (db #x41)]
-    [`(ld b d)    (db #x42)]
-    [`(ld b e)    (db #x43)]
-    [`(ld b h)    (db #x44)]
-    [`(ld b l)    (db #x45)]
-    [`(ld b (hl)) (db #x46)]
-    [`(ld b a)    (db #x47)]
+    [`(ld b b)                 (db   #x40)]
+    [`(ld b c)                 (db   #x41)]
+    [`(ld b d)                 (db   #x42)]
+    [`(ld b e)                 (db   #x43)]
+    [`(ld b h)                 (db   #x44)]
+    [`(ld b l)                 (db   #x45)]
+    [`(ld b (hl))              (db   #x46)]
+    [`(ld b ixh)               (zdd  #x44)]
+    [`(ld b ixl)               (zdd  #x45)]
+    [`(ld b (ix ,(? zoff? s))) (zdds #x46 s)]
+    [`(ld b iyh)               (zfd  #x44)]
+    [`(ld b iyl)               (zfd  #x45)]
+    [`(ld b (iy ,(? zoff? s))) (zfds #x46 s)]
+    [`(ld b a)                 (db   #x47)]
+    [`(ld b ,(? zb? n))        (zb   #x06 n)]
     
-    [`(ld c b)    (db #x48)]
-    [`(ld c c)    (db #x49)]
-    [`(ld c d)    (db #x4a)]
-    [`(ld c e)    (db #x4b)]
-    [`(ld c h)    (db #x4c)]
-    [`(ld c l)    (db #x4d)]
-    [`(ld c (hl)) (db #x4e)]
-    [`(ld c a)    (db #x4f)]
-
-    [`(ld d b)    (db #x50)]
-    [`(ld d c)    (db #x51)]
-    [`(ld d d)    (db #x52)]
-    [`(ld d e)    (db #x53)]
-    [`(ld d h)    (db #x54)]
-    [`(ld d l)    (db #x55)]
-    [`(ld d (hl)) (db #x56)]
-    [`(ld d a)    (db #x57)]
+    [`(ld c b)                 (db   #x48)]
+    [`(ld c c)                 (db   #x49)]
+    [`(ld c d)                 (db   #x4a)]
+    [`(ld c e)                 (db   #x4b)]
+    [`(ld c h)                 (db   #x4c)]
+    [`(ld c l)                 (db   #x4d)]
+    [`(ld c (hl))              (db   #x4e)]
+    [`(ld c ixh)               (zdd  #x4c)]
+    [`(ld c ixl)               (zdd  #x4d)]
+    [`(ld c (ix ,(? zoff? s))) (zdds #x4e s)]
+    [`(ld c iyh)               (zfd  #x4c)]
+    [`(ld c iyl)               (zfd  #x4d)]
+    [`(ld c (iy ,(? zoff? s))) (zfds #x4e s)]
+    [`(ld c a)                 (db   #x4f)]
+    [`(ld c ,(? zb? n))        (zb   #x0e n)]
     
-    [`(ld e b)    (db #x58)]
-    [`(ld e c)    (db #x59)]
-    [`(ld e d)    (db #x5a)]
-    [`(ld e e)    (db #x5b)]
-    [`(ld e h)    (db #x5c)]
-    [`(ld e l)    (db #x5d)]
-    [`(ld e (hl)) (db #x5e)]
-    [`(ld e a)    (db #x5f)]
-
-    [`(ld h b)    (db #x60)]
-    [`(ld h c)    (db #x61)]
-    [`(ld h d)    (db #x62)]
-    [`(ld h e)    (db #x63)]
-    [`(ld h h)    (db #x64)]
-    [`(ld h l)    (db #x65)]
-    [`(ld h (hl)) (db #x66)]
-    [`(ld h a)    (db #x67)]
+    [`(ld d b)                 (db   #x50)]
+    [`(ld d c)                 (db   #x51)]
+    [`(ld d d)                 (db   #x52)]
+    [`(ld d e)                 (db   #x53)]
+    [`(ld d h)                 (db   #x54)]
+    [`(ld d l)                 (db   #x55)]
+    [`(ld d (hl))              (db   #x56)]
+    [`(ld d ixh)               (zdd  #x54)]
+    [`(ld d ixl)               (zdd  #x55)]
+    [`(ld d (ix ,(? zoff? s))) (zdds #x56 s)]
+    [`(ld d iyh)               (zfd  #x54)]
+    [`(ld d iyl)               (zfd  #x55)]
+    [`(ld d (iy ,(? zoff? s))) (zfds #x56 s)]
+    [`(ld d a)                 (db   #x57)]
+    [`(ld d ,(? zb? n))        (zb   #x16 n)]
     
-    [`(ld l b)    (db #x68)]
-    [`(ld l c)    (db #x69)]
-    [`(ld l d)    (db #x6a)]
-    [`(ld l e)    (db #x6b)]
-    [`(ld l h)    (db #x6c)]
-    [`(ld l l)    (db #x6d)]
-    [`(ld l (hl)) (db #x6e)]
-    [`(ld l a)    (db #x6f)]
+    [`(ld e b)                 (db   #x58)]
+    [`(ld e c)                 (db   #x59)]
+    [`(ld e d)                 (db   #x5a)]
+    [`(ld e e)                 (db   #x5b)]
+    [`(ld e h)                 (db   #x5c)]
+    [`(ld e l)                 (db   #x5d)]
+    [`(ld e (hl))              (db   #x5e)]
+    [`(ld e ixh)               (zdd  #x5c)]
+    [`(ld e ixl)               (zdd  #x5d)]
+    [`(ld e (ix ,(? zoff? s))) (zdds #x5e s)]
+    [`(ld e iyh)               (zfd  #x5c)]
+    [`(ld e iyl)               (zfd  #x5d)]
+    [`(ld e (iy ,(? zoff? s))) (zfds #x5e s)]
+    [`(ld e a)                 (db   #x5f)]
+    [`(ld e ,(? zb? n))        (zb   #x1e n)]
+    
+    [`(ld h b)                 (db   #x60)]
+    [`(ld h c)                 (db   #x61)]
+    [`(ld h d)                 (db   #x62)]
+    [`(ld h e)                 (db   #x63)]
+    [`(ld h h)                 (db   #x64)]
+    [`(ld h l)                 (db   #x65)]
+    [`(ld h (hl))              (db   #x66)]
+    [`(ld h ixh)               (zdd  #x64)]
+    [`(ld h ixl)               (zdd  #x65)]
+    [`(ld h (ix ,(? zoff? s))) (zdds #x66 s)]
+    [`(ld h iyh)               (zfd  #x64)]
+    [`(ld h iyl)               (zfd  #x65)]
+    [`(ld h (iy ,(? zoff? s))) (zfds #x66 s)]
+    [`(ld h a)                 (db   #x67)]
+    [`(ld h ,(? zb? n))        (zb   #x26 n)]
+    
+    [`(ld l b)                 (db   #x68)]
+    [`(ld l c)                 (db   #x69)]
+    [`(ld l d)                 (db   #x6a)]
+    [`(ld l e)                 (db   #x6b)]
+    [`(ld l h)                 (db   #x6c)]
+    [`(ld l l)                 (db   #x6d)]
+    [`(ld l (hl))              (db   #x6e)]
+    [`(ld l ixh)               (zdd  #x6c)]
+    [`(ld l ixl)               (zdd  #x6d)]
+    [`(ld l (ix ,(? zoff? s))) (zdds #x6e s)]
+    [`(ld l iyh)               (zfd  #x6c)]
+    [`(ld l iyl)               (zfd  #x6d)]
+    [`(ld l (iy ,(? zoff? s))) (zfds #x6e s)]
+    [`(ld l a)                 (db   #x6f)]
+    [`(ld l ,(? zb? n))        (zb   #x2e n)]
+    
+    [`(ld ixh b)          (zdd   #x60)]
+    [`(ld ixh c)          (zdd   #x61)]
+    [`(ld ixh d)          (zdd   #x62)]
+    [`(ld ixh e)          (zdd   #x63)]
+    [`(ld ixh h)          (zdd   #x64)]
+    [`(ld ixh l)          (zdd   #x65)]
+    [`(ld ixh (ix ,(? zrel? s))) (zdds #x66 s)]
+    [`(ld ixh a)          (zdd   #x67)]
+    [`(ld ixh ,(? zb? n)) (zddb #x26 n)]
 
+    [`(ld iyh b)          (zfd  #x68)]
+    [`(ld iyh c)          (zfd  #x69)]
+    [`(ld iyh d)          (zfd  #x6a)]
+    [`(ld iyh e)          (zfd  #x6b)]
+    [`(ld iyh h)          (zfd  #x6c)]
+    [`(ld iyh l)          (zfd  #x6d)]
+    [`(ld iyh (iy ,(? zrel? s))) (zfds #x6e s)]
+    [`(ld iyh a)          (zfd  #x6f)]
+    [`(ld iyh ,(? zb? n)) (zfdb #x26 n)]
+    
     [`(ld (hl) b)    (db #x70)]
     [`(ld (hl) c)    (db #x71)]
     [`(ld (hl) d)    (db #x72)]
@@ -95,7 +190,17 @@
     [`(ld a h)    (db #x7c)]
     [`(ld a l)    (db #x7d)]
     [`(ld a (hl)) (db #x7e)]
+    [`(ld a ixh)    (zdd #x7c)]
+    [`(ld a ixl)    (zdd #x7d)]
+    [`(ld a (ix ,(? zoff? s))) (zdds #x7e s)]
+    [`(ld a iyh)    (zfd #x7c)]
+    [`(ld a iyl)    (zfd #x7d)]
+    [`(ld a (iy ,(? zoff? s))) (zfds #x7e s)]
     [`(ld a a)    (db #x7f)]
+    [`(ld a (bc)) (db #x0a)]
+    [`(ld a (de)) (db #x1a)]
+    [`(ld a (,(? za? n))) (zw #x3a n)]
+    [`(ld a ,(? zb? n))   (zb #x3e n)]
 
     [`(add a b)    (db #xa0)]
     [`(add a c)    (db #xa1)]
@@ -188,12 +293,11 @@
     [`(jp (hl))    (db #xe9)]
     [`(ld sp hl)   (db #xf9)]
 
-    [`(ld bc ,(? z80w? n))            (z80w #x01 n)]
+    [`(ld bc ,(? zw? n))            (zw #x01 n)]
     [`(ld (bc) a)                     (db #x02)]
     [`(inc bc)                        (db #x03)]
     [`(inc b)                         (db #x04)]
     [`(dec b)                         (db #x05)]
-    [`(ld b ,(? z80b? n))             (z80b #x06 n)]
     [`(rlca)                          (db #x07)]
     [`(ex af af*)                     (db #x08)]
     [`(add hl bc)                     (db #x09)]
@@ -201,15 +305,14 @@
     [`(dec bc)                        (db #x0b)]
     [`(inc c)                         (db #x0c)]
     [`(dec c)                         (db #x0d)]
-    [`(ld c ,(? z80b? n))             (z80b #x0e n)]
     [`(rrca)                          (db #x0f)]
     
-    [`(djnz ,(? z80rel? n))           (z80rel #x10 n)]
-    [`(ld de ,(? z80w? n))            (z80w #x11 n)]
+    [`(djnz ,(? zrel? n))           (zrel #x10 n)]
+    [`(ld de ,(? zw? n))            (zw #x11 n)]
     [`(ld (de) a)                     (db #x12)]
     [`(inc de)                        (db #x13)]
     [`(inc d)                         (db #x14)]
     [`(dec d)                         (db #x15)]
-    [`(ld d ,(? z80b? n))             (z80b #x16 n)]
+    [`(ld d ,(? zb? n))             (zb #x16 n)]
     
     ))
