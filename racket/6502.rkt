@@ -14,7 +14,7 @@
 (define (65addr op n)
   (db op (asm-b 0 n) (asm-b 1 n)))
 (define (65rel op n)
-  (db op (@@ n)))
+  (db op (->@ n)))
 
 (architecture
  '6502 #f

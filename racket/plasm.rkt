@@ -142,6 +142,14 @@
           #t #f)
       #f))
 
+
+(define (set-label sym)
+  sym)
+
+(define (get-label sym)
+  sym)
+  
+
 (define (look-for-labels code)
   (filter (lambda (statement)
             (cond
@@ -161,16 +169,20 @@
     (hash-set! %architectures name arch)))
 
 (define @ 0)
-(define (@@ n)
+(define (->@ n)
   (- n @))
 
 (define (label-code code labels)
   code)
+(define (asm-keyword thing ops)
+  (match thing
+    [(? label? label) (set-label label)]
+    [op (ops op)]))
 
 (define (asm arch code)
   (let* [(label-refs (look-for-labels code))
          (labeled-code (label-code code label-refs))
          (recognizer (%architecture-recognizer (hash-ref %architectures arch)))]
-    (for-each recognizer labeled-code)))
+    (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)))
 
 (provide (all-defined-out))
