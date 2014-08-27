@@ -22,6 +22,8 @@
 (define (zrel op n)
   (db op (->@ n)))
 
+(define (zed op)
+  (db #xed op))
 (define (zdd op)
   (db #xdd op))
 (define (zddb op b)
@@ -313,6 +315,26 @@
     [`(inc de)                        (db #x13)]
     [`(inc d)                         (db #x14)]
     [`(dec d)                         (db #x15)]
-    [`(ld d ,(? zb? n))             (zb #x16 n)]
+    
+    [`(jp ,(? za? n))    (zw #xc3 n)]
+    [`(jp nz ,(? za? n)) (zw #xc2 n)]
+    [`(jp z ,(? za? n))  (zw #xca n)]
+    [`(jp nc ,(? za? n)) (zw #xd2 n)]
+    [`(jp c ,(? za? n))  (zw #xda n)]
+    [`(jp po ,(? za? n)) (zw #xe2 n)]
+    [`(jp pe ,(? za? n)) (zw #xea n)]
+    [`(jp p ,(? za? n))  (zw #xf2 n)]
+    [`(jp m ,(? za? n))  (zw #xfa n)]
+    [`(jp (hl))          (db #xe9)]
+    [`(jp (ix))          (zdd #xe9)]
+    [`(jp (iy))          (zfd #xe9)]
+    
+    [`(djnz ,(? zrel? n))  (zb #x10 n)]
+    [`(jr ,(? zrel? n))    (zb #x18 n)]
+    [`(jr nz ,(? zrel? n)) (zb #x20 n)]
+    [`(jr z ,(? zrel? n))  (zb #x28 n)]
+    [`(jr nc ,(? zrel? n)) (zb #x30 n)]
+    [`(jr c ,(? zrel? n))  (zb #x38 n)]
+    
     
     ))
