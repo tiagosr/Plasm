@@ -54,7 +54,6 @@
           #f)
       #f))
 
-
 (architecture
  'z80 #f
   (match-lambda
@@ -213,6 +212,27 @@
     [`(add a (hl)) (db #xa6)]
     [`(add a a)    (db #xa7)]
     
+    [`(add a ixh)  (zdd #xa4)]
+    [`(add a ixl)  (zdd #xa5)]
+    [`(add a (ix ,(? zoff? s))) (zdds #xa6 s)]
+    [`(add a iyh)  (zfd #xa4)]
+    [`(add a iyl)  (zfd #xa5)]
+    [`(add a (iy ,(? zoff? s))) (zfds #xa6 s)]
+    [`(add a ,(? zb? n)) (zb #xc6 n)]
+    [`(add hl bc)  (db #x09)]
+    [`(add hl de)  (db #x19)]
+    [`(add hl hl)  (db #x29)]
+    [`(add hl sp)  (db #x39)]
+    [`(add ix bc)  (zdd #x09)]
+    [`(add ix de)  (zdd #x19)]
+    [`(add ix hl)  (zdd #x29)]
+    [`(add ix sp)  (zdd #x39)]
+    [`(add iy bc)  (zfd #x09)]
+    [`(add iy de)  (zfd #x19)]
+    [`(add iy hl)  (zfd #x29)]
+    [`(add iy sp)  (zfd #x39)]
+    
+    
     [`(adc a b)    (db #x88)]
     [`(adc a c)    (db #x89)]
     [`(adc a d)    (db #x8a)]
@@ -221,7 +241,12 @@
     [`(adc a l)    (db #x8d)]
     [`(adc a (hl)) (db #x8e)]
     [`(adc a a)    (db #x8f)]
-
+    [`(adc a ,(? zb? n)) (zb #xce n)]
+    [`(adc hl bc)  (zed #x4a)]
+    [`(adc hl de)  (zed #x5a)]
+    [`(adc hl hl)  (zed #x6a)]
+    [`(adc hl sp)  (zed #x7a)]
+    
     [`(sub b)      (db #x90)]
     [`(sub c)      (db #x91)]
     [`(sub d)      (db #x92)]
@@ -230,6 +255,14 @@
     [`(sub l)      (db #x95)]
     [`(sub (hl))   (db #x96)]
     [`(sub a)      (db #x97)]
+    [`(sub ,(? zb? n)) (zb #xd6)]
+    [`(sub ixh)      (zdd #x94)]
+    [`(sub ixl)      (zdd #x95)]
+    [`(sub (ix ,(? zoff? s)))   (zdds #x96 s)]
+    [`(sub iyh)      (zfd #x94)]
+    [`(sub iyl)      (zfd #x95)]
+    [`(sub (iy ,(? zoff? s)))   (zfds #x96 s)]
+    
     
     [`(sbc a b)    (db #x98)]
     [`(sbc a c)    (db #x99)]
@@ -239,7 +272,13 @@
     [`(sbc a l)    (db #x9d)]
     [`(sbc a (hl)) (db #x9e)]
     [`(sbc a a)    (db #x9f)]
-
+    [`(sbc a ixh)    (zdd #x9c)]
+    [`(sbc a ixl)    (zdd #x9d)]
+    [`(sbc a (ix ,(? zoff? s))) (zdds #x9e)]
+    [`(sbc a iyh)    (zfd #x9c)]
+    [`(sbc a iyl)    (zfd #x9d)]
+    [`(sbc a (iy ,(? zoff? s))) (zfds #x9e)]
+    
     [`(and b)      (db #xa0)]
     [`(and c)      (db #xa1)]
     [`(and d)      (db #xa2)]
@@ -309,12 +348,6 @@
     [`(dec c)                         (db #x0d)]
     [`(rrca)                          (db #x0f)]
     
-    [`(djnz ,(? zrel? n))           (zrel #x10 n)]
-    [`(ld de ,(? zw? n))            (zw #x11 n)]
-    [`(ld (de) a)                     (db #x12)]
-    [`(inc de)                        (db #x13)]
-    [`(inc d)                         (db #x14)]
-    [`(dec d)                         (db #x15)]
     
     [`(jp ,(? za? n))    (zw #xc3 n)]
     [`(jp nz ,(? za? n)) (zw #xc2 n)]
@@ -329,7 +362,7 @@
     [`(jp (ix))          (zdd #xe9)]
     [`(jp (iy))          (zfd #xe9)]
     
-    [`(djnz ,(? zrel? n))  (zb #x10 n)]
+    [`(djnz ,(? zrel? n))  (zrel #x10 n)]
     [`(jr ,(? zrel? n))    (zb #x18 n)]
     [`(jr nz ,(? zrel? n)) (zb #x20 n)]
     [`(jr z ,(? zrel? n))  (zb #x28 n)]
@@ -346,7 +379,7 @@
     [`(call p ,(? za? n))  (zw #xf4 n)]
     [`(call m ,(? za? n))  (zw #xfc n)]
     
-    [`(ret)                (db #xc9)]
+    [`(ret)                  (db #xc9)]
     [`(ret nz)               (db #xc0)]
     [`(ret z)                (db #xc8)]
     [`(ret nc)               (db #xd0)]
