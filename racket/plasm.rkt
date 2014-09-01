@@ -1,5 +1,10 @@
 #lang racket
 
+(struct %label
+  (name
+   pos)
+  #:transparent)
+
 (define (asm-b n val)
   (bitwise-and 255 (arithmetic-shift val (* 8 n))))
 (define big-endian #f)
