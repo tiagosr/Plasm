@@ -1,16 +1,36 @@
 #lang racket
 
+(require racket/promise)
+
 (struct %label
   (name
    pos)
   #:transparent)
 
+(struct %section
+  (name
+   start
+   labels)
+  #:transparent)
+(define %sections (make-hash))
+
 (define (asm-b n val)
   (bitwise-and 255 (arithmetic-shift val (* 8 n))))
 (define big-endian #f)
+
+(define @ 0)
+(define (@+ n)
+  (set! @ (+ @ n)))
+(define (@= n)
+  (set! @ n))
+(define (->@ n)
+  (- n @))
+
 (define (asm-write-byte b)
   ; substitute this for actual byte output in current section
-  (printf "~X " (bitwise-and 255 (floor (inexact->exact b)))))
+  (begin
+    (printf "~X " (bitwise-and 255 (floor (inexact->exact b))))
+    (@+ 1)))
 (define (asm-write-byte-list l)
   (for-each asm-write-byte l))
 
@@ -109,12 +129,6 @@
        ; maybe deal with struct redefinitions here?
          (hash-set! %structs 'name %s-def))]))
 
-(struct %section
-  (name
-   start
-   exports)
-  #:transparent)
-(define %sections (make-hash))
 
 
 (define-syntax section
@@ -173,9 +187,6 @@
   (let [(arch (%architecture name endianess recognizer))]
     (hash-set! %architectures name arch)))
 
-(define @ 0)
-(define (->@ n)
-  (- n @))
 
 (define (label-code code labels)
   code)
@@ -183,6 +194,10 @@
   (match thing
     [(? label? label) (set-label label)]
     [op (ops op)]))
+
+(define %asm-base
+  (match-lambda
+    [anything (eval anything)]))
 
 (define (asm arch code)
   (let* [(label-refs (look-for-labels code))

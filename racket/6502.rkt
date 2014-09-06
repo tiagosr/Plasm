@@ -207,4 +207,6 @@
     [`(txa)                      (db #x8a)]
     [`(txs)                      (db #x9a)]
     [`(tya)                      (db #x98)]
+    
+    [rest (%asm-base rest)]
     ))
