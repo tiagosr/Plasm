@@ -213,13 +213,18 @@
          (labeled-code (label-code code labels))
          (recognizer (%architecture-recognizer (hash-ref %architectures arch)))
          (was-assembling %assembling%)
-         (~@ @)]
+         (~@ @)
+         (old-bytes %bytes)
+         (new-bytes (open-output-bytes))]
+    (set! %bytes new-bytes)
     (set! %assembling% #f)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
     (set! %assembling% #t)
     (@= ~@)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
-    (set! %assembling% was-assembling)))
+    (set! %assembling% was-assembling)
+    (set! %bytes old-bytes)
+    (get-output-bytes new-bytes)))
 
 (architecture 'null #f (lambda (op) (%asm-base op)))
 (provide (all-defined-out))
