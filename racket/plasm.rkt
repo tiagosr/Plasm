@@ -16,6 +16,10 @@
 
 (define (asm-b n val)
   (bitwise-and 255 (arithmetic-shift val (* 8 n))))
+(define (asm-w n val)
+  (bitwise-and #xffff (arithmetic-shift val (* 16 n))))
+(define (asm-d n val)
+  (bitwise-and #xffffffff (arithmetic-shift val (* 32 n))))`
 (define big-endian #f)
 
 (define @ 0)
@@ -29,7 +33,7 @@
   (make-hasheq))
 (define %bytes (open-output-bytes))
 (define %assembling% #f)
-
+(define %big-endian% #f)
 (define (asm-write-byte b)
   (begin
     (if %assembling%
@@ -47,15 +51,15 @@
 (define (db . rest)
   (asm-write-byte-list (asm-flatten rest)))
 (define (dw . rest)
-  (case big-endian
+  (case %big-endian%
     [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
     [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n))) (asm-flatten rest)))]))
 (define (dd . rest)
-  (case big-endian
+  (case %big-endian%
     [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
     [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n))) (asm-flatten rest)))]))
 (define (dq . rest)
-  (case big-endian
+  (case %big-endian%
     [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 7 n) (asm-b 6 n) (asm-b 5 n) (asm-b 4 n)
                                                           (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
     [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n)
@@ -209,22 +213,26 @@
     [anything (eval anything)]))
 
 (define (asm arch code)
-  (let* [(labels (look-for-labels code))
+  (let* [(old-big-endian %big-endian%)
+         (labels (look-for-labels code))
          (labeled-code (label-code code labels))
+         (big-endian (%architecture-big-endian (hash-ref %architectures arch)))
          (recognizer (%architecture-recognizer (hash-ref %architectures arch)))
          (was-assembling %assembling%)
          (~@ @)
          (old-bytes %bytes)
          (new-bytes (open-output-bytes))]
     (set! %bytes new-bytes)
+    (set! %big-endian% big-endian)
     (set! %assembling% #f)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
     (set! %assembling% #t)
     (@= ~@)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
     (set! %assembling% was-assembling)
+    (set! %big-endian% old-big-endian)
     (set! %bytes old-bytes)
     (get-output-bytes new-bytes)))
 
-(architecture 'null #f (lambda (op) (%asm-base op)))
+(architecture 'null #f %asm-base)
 (provide (all-defined-out))
