@@ -164,6 +164,29 @@
     [`(l ,(? 68kaddrl? addr)) `(,(asm-w 1 addr) ,(asm-w 0 addr))]
     [(? 68kimmw? imm) `(,imm)]
     ))
+
+(define 68kdreg-mode2
+  (match-lambda
+    ['d0 #b0000000000000000]
+    ['d1 #b0000001000000000]
+    ['d2 #b0000010000000000]
+    ['d3 #b0000011000000000]
+    ['d4 #b0000100000000000]
+    ['d5 #b0000101000000000]
+    ['d6 #b0000110000000000]
+    ['d7 #b0000111000000000]))
+(define 68kareg-mode2
+  (match-lambda
+    ['a0 #b0000000000000000]
+    ['a1 #b0000001000000000]
+    ['a2 #b0000010000000000]
+    ['a3 #b0000011000000000]
+    ['a4 #b0000100000000000]
+    ['a5 #b0000101000000000]
+    ['a6 #b0000110000000000]
+    ['a7 #b0000111000000000]
+    ['sp #b0000111000000000]))
+    
     
 (define 68kreg?
   (match-lambda
@@ -191,12 +214,15 @@
    [`(rtr)     (dw #b0100111001110111)]
    
    
-   [`(ori ccr ,(? 68kimmb? imm))  (dw #b0000000000111100 imm)]
-   [`(ori sr ,(? 68kimmw? imm))   (dw #b0000000001111100 imm)]
-   [`(andi ccr ,(? 68kimmb? imm)) (dw #b0000001000111100 imm)]
-   [`(andi sr ,(? 68kimmw? imm))  (dw #b0000001001111100 imm)]
-   [`(eori ccr ,(? 68kimmb? imm)) (dw #b0000101000111100 imm)]
-   [`(eori sr ,(? 68kimmw? imm))  (dw #b0000101001111100 imm)]
+   [`(ori ,(? 68kimmb? imm) ccr)   (dw #b0000000000111100 imm)]
+   [`(ori ,(? 68kimmw? imm) sr)    (dw #b0000000001111100 imm)]
+   [`(andi ,(? 68kimmb? imm) ccr)  (dw #b0000001000111100 imm)]
+   [`(andi ,(? 68kimmw? imm) sr)   (dw #b0000001001111100 imm)]
+   [`(eori ,(? 68kimmb? imm) ccr)  (dw #b0000101000111100 imm)]
+   [`(eori ,(? 68kimmw? imm) sr)   (dw #b0000101001111100 imm)]
+   [`(move.w sr ,(? 68kreg? reg))  (dw (+ #b0100000011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(move.w ,(? 68kreg? reg) ccr) (dw (+ #b0100010011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(move.w ,(? 68kreg? reg) sr)  (dw (+ #b0100011011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    
    [`(ori.b  ,(? 68kreg? reg) ,(? 68kimmb? imm)) (dw (+ #b0000000000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
    [`(ori.w  ,(? 68kreg? reg) ,(? 68kimmw? imm)) (dw (+ #b0000000001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
@@ -234,5 +260,15 @@
    [`(clr.b ,(? 68kreg? reg))                    (dw (+ #b0100001000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    [`(clr.w ,(? 68kreg? reg))                    (dw (+ #b0100001001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    [`(clr.l ,(? 68kreg? reg))                    (dw (+ #b0100001010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   
+   [`(neg.b ,(? 68kreg? reg))                    (dw (+ #b0100010000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(neg.w ,(? 68kreg? reg))                    (dw (+ #b0100010001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(neg.l ,(? 68kreg? reg))                    (dw (+ #b0100010010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   
+   [`(not.b ,(? 68kreg? reg))                    (dw (+ #b0100011000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(not.w ,(? 68kreg? reg))                    (dw (+ #b0100011001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(not.l ,(? 68kreg? reg))                    (dw (+ #b0100011010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   
+   
    ))
    
