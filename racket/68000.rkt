@@ -14,6 +14,10 @@
   (and (>= n (- #x80000000))
        (<= n #xffffffff)))
 
+(define (68kdisp.b? n)
+  (and (>= n -128)
+       (<= n 127)))
+
 (define (68kdispw? n)
   (and (>= n -32768)
        (<= n 32767)))
@@ -115,41 +119,15 @@
 (define (68kreg-brief-ext-word disp reg)
   (+ (bitwise-and #x255 disp)
      (match reg
-            ['d0.w #x0000]
-            ['d1.w #x1000]
-            ['d2.w #x2000]
-            ['d3.w #x3000]
-            ['d4.w #x4000]
-            ['d5.w #x5000]
-            ['d6.w #x6000]
-            ['d7.w #x7000]
-            ['d0.l #x0800]
-            ['d1.l #x1800]
-            ['d2.l #x2800]
-            ['d3.l #x3800]
-            ['d4.l #x4800]
-            ['d5.l #x5800]
-            ['d6.l #x6800]
-            ['d7.l #x7800]
-            ['a0.w #x8000]
-            ['a1.w #x9000]
-            ['a2.w #xa000]
-            ['a3.w #xb000]
-            ['a4.w #xc000]
-            ['a5.w #xd000]
-            ['a6.w #xe000]
-            ['a7.w #xf000]
-            ['sp.w #xf000]
-            ['a0.l #x8800]
-            ['a1.l #x9800]
-            ['a2.l #xa800]
-            ['a3.l #xb800]
-            ['a4.l #xc800]
-            ['a5.l #xd800]
-            ['a6.l #xe800]
-            ['a7.l #xf800]
-            ['sp.l #xf800]
-            )))
+       ['d0.w #x0000] ['d1.w #x1000] ['d2.w #x2000] ['d3.w #x3000]
+       ['d4.w #x4000] ['d5.w #x5000] ['d6.w #x6000] ['d7.w #x7000]
+       ['d0.l #x0800] ['d1.l #x1800] ['d2.l #x2800] ['d3.l #x3800]
+       ['d4.l #x4800] ['d5.l #x5800] ['d6.l #x6800] ['d7.l #x7800]
+       ['a0.w #x8000] ['a1.w #x9000] ['a2.w #xa000] ['a3.w #xb000]
+       ['a4.w #xc000] ['a5.w #xd000] ['a6.w #xe000] ['a7.w #xf000] ['sp.w #xf000]
+       ['a0.l #x8800] ['a1.l #x9800] ['a2.l #xa800] ['a3.l #xb800]
+       ['a4.l #xc800] ['a5.l #xd800] ['a6.l #xe800] ['a7.l #xf800] ['sp.l #xf800]
+       )))
 (define 68kreg-extra-words
   (match-lambda
     [(? 68kdreg? d) '()]
@@ -269,6 +247,74 @@
    [`(not.w ,(? 68kreg? reg))                    (dw (+ #b0100011001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    [`(not.l ,(? 68kreg? reg))                    (dw (+ #b0100011010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    
+   [`(bra.s ,(? 68kdisp.b? disp))                (dw (+ #b0110000000000000 (bitwise-and 255 disp)))]
+   [`(bra   ,(? 68kdispw? disp))                 (dw    #b0110000000000000 disp)]
+   
+   [`(bsr.s ,(? 68kdisp.b? disp))                (dw (+ #b0110000100000000 (bitwise-and 255 disp)))]
+   [`(bsr   ,(? 68kdispw? disp))                 (dw    #b0110000100000000 disp)]
+   
+   [`(bhi.s ,(? 68kdisp.b? disp))                (dw (+ #b0110001000000000 (bitwise-and 255 disp)))]
+   [`(bhi   ,(? 68kdispw? disp))                 (dw    #b0110001000000000 disp)]
+   [`(bls.s ,(? 68kdisp.b? disp))                (dw (+ #b0110001100000000 (bitwise-and 255 disp)))]
+   [`(bls   ,(? 68kdispw? disp))                 (dw    #b0110001100000000 disp)]
+   [`(bcc.s ,(? 68kdisp.b? disp))                (dw (+ #b0110010000000000 (bitwise-and 255 disp)))]
+   [`(bcc   ,(? 68kdispw? disp))                 (dw    #b0110010000000000 disp)]
+   [`(bcs.s ,(? 68kdisp.b? disp))                (dw (+ #b0110010100000000 (bitwise-and 255 disp)))]
+   [`(bcs   ,(? 68kdispw? disp))                 (dw    #b0110010100000000 disp)]
+   [`(bne.s ,(? 68kdisp.b? disp))                (dw (+ #b0110011000000000 (bitwise-and 255 disp)))]
+   [`(bne   ,(? 68kdispw? disp))                 (dw    #b0110011000000000 disp)]
+   [`(beq.s ,(? 68kdisp.b? disp))                (dw (+ #b0110011100000000 (bitwise-and 255 disp)))]
+   [`(beq   ,(? 68kdispw? disp))                 (dw    #b0110011100000000 disp)]
+   [`(bvc.s ,(? 68kdisp.b? disp))                (dw (+ #b0110100000000000 (bitwise-and 255 disp)))]
+   [`(bvc   ,(? 68kdispw? disp))                 (dw    #b0110100000000000 disp)]
+   [`(bvs.s ,(? 68kdisp.b? disp))                (dw (+ #b0110100100000000 (bitwise-and 255 disp)))]
+   [`(bvs   ,(? 68kdispw? disp))                 (dw    #b0110100100000000 disp)]
+   [`(bpl.s ,(? 68kdisp.b? disp))                (dw (+ #b0110101000000000 (bitwise-and 255 disp)))]
+   [`(bpl   ,(? 68kdispw? disp))                 (dw    #b0110101000000000 disp)]
+   [`(bmi.s ,(? 68kdisp.b? disp))                (dw (+ #b0110101100000000 (bitwise-and 255 disp)))]
+   [`(bmi   ,(? 68kdispw? disp))                 (dw    #b0110101100000000 disp)]
+   [`(bge.s ,(? 68kdisp.b? disp))                (dw (+ #b0110110000000000 (bitwise-and 255 disp)))]
+   [`(bge   ,(? 68kdispw? disp))                 (dw    #b0110110000000000 disp)]
+   [`(blt.s ,(? 68kdisp.b? disp))                (dw (+ #b0110110100000000 (bitwise-and 255 disp)))]
+   [`(blt   ,(? 68kdispw? disp))                 (dw    #b0110110100000000 disp)]
+   [`(bgt.s ,(? 68kdisp.b? disp))                (dw (+ #b0110111000000000 (bitwise-and 255 disp)))]
+   [`(bgt   ,(? 68kdispw? disp))                 (dw    #b0110111000000000 disp)]
+   [`(ble.s ,(? 68kdisp.b? disp))                (dw (+ #b0110111100000000 (bitwise-and 255 disp)))]
+   [`(ble   ,(? 68kdispw? disp))                 (dw    #b0110111100000000 disp)]
+
+   [`(st  ,(? 68kreg? reg))                 (dw (+ #b0101000011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sf  ,(? 68kreg? reg))                 (dw (+ #b0101000111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(shi ,(? 68kreg? reg))                 (dw (+ #b0101001011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sls ,(? 68kreg? reg))                 (dw (+ #b0101001111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(scc ,(? 68kreg? reg))                 (dw (+ #b0101010011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(scs ,(? 68kreg? reg))                 (dw (+ #b0101010111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sne ,(? 68kreg? reg))                 (dw (+ #b0101011011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(seq ,(? 68kreg? reg))                 (dw (+ #b0101011111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(svc ,(? 68kreg? reg))                 (dw (+ #b0101100011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(svs ,(? 68kreg? reg))                 (dw (+ #b0101100111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(spl ,(? 68kreg? reg))                 (dw (+ #b0101101011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(smi ,(? 68kreg? reg))                 (dw (+ #b0101101111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sge ,(? 68kreg? reg))                 (dw (+ #b0101110011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(slt ,(? 68kreg? reg))                 (dw (+ #b0101110111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sgt ,(? 68kreg? reg))                 (dw (+ #b0101111011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+   [`(sle ,(? 68kreg? reg))                 (dw (+ #b0101111111000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
+
+   [`(dbt  ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101000011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbf  ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101000111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbhi ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101001011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbls ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101001111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbcc ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101010011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbcs ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101010111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbne ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101011011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbeq ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101011111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbvc ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101100011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbvs ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101100111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbpl ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101101011001000 (68kreg-mode+num reg)) disp)]
+   [`(dbmi ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101101111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbge ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101110011001000 (68kreg-mode+num reg)) disp)]
+   [`(dblt ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101110111001000 (68kreg-mode+num reg)) disp)]
+   [`(dbgt ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101111011001000 (68kreg-mode+num reg)) disp)]
+   [`(dble ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101111111001000 (68kreg-mode+num reg)) disp)]
    
    ))
    
