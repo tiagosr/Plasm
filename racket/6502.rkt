@@ -16,7 +16,7 @@
 (define (65rel op n)
   (db op (->@ n)))
 
-(architecture
+(make-architecture
  '6502 #f
   (match-lambda
     [`(adc.izx ,(? 65imm? n))    (65imm  #x61 n)]

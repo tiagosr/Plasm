@@ -180,7 +180,7 @@
         [`(l ,(? 68kaddrl? _)) #t]
         [(? 68kimmw? _) #t]
         ))
-(architecture
+(make-architecture
  '68000 #t
  (match-lambda
    [`(illegal) (dw #b0100101011111100)]

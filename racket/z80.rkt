@@ -953,5 +953,5 @@
     [rest (%z80-common rest)]
     ))
 
-(architecture 'z80 #f %z80-common)
-(architecture 'gbz80 #f %z80-gb)
+(make-architecture 'z80 #f %z80-excl)
+(make-architecture 'gbz80 #f %z80-gb)

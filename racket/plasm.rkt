@@ -192,8 +192,9 @@
    recognizer))
 
 (define %architectures (make-hash))
+(define %current-architecture (void))
 
-(define (architecture name endianess recognizer)
+(define (make-architecture name endianess recognizer)
   (let [(arch (%architecture name endianess recognizer))]
     (hash-set! %architectures name arch)))
 
@@ -212,12 +213,13 @@
   (match-lambda
     [anything (eval anything)]))
 
-(define (asm arch code)
+(define %current-architecture% 'null)
+(define (asm code)
   (let* [(old-big-endian %big-endian%)
          (labels (look-for-labels code))
          (labeled-code (label-code code labels))
-         (big-endian (%architecture-big-endian (hash-ref %architectures arch)))
-         (recognizer (%architecture-recognizer (hash-ref %architectures arch)))
+         (big-endian (%architecture-big-endian (hash-ref %architectures %current-architecture%)))
+         (recognizer (%architecture-recognizer (hash-ref %architectures %current-architecture%)))
          (was-assembling %assembling%)
          (~@ @)
          (old-bytes %bytes)
@@ -234,5 +236,13 @@
     (set! %bytes old-bytes)
     (get-output-bytes new-bytes)))
 
-(architecture 'null #f %asm-base)
+(make-architecture 'null #f %asm-base)
+
+(define (asm-arch arch body)
+  (let ((%old-arch% %current-architecture%)
+        (dummy (set %current-architecture% arch))
+        (assembled (asm body)))
+    (set %current-architecture% %old-arch%)
+    (values assembled)))
+
 (provide (all-defined-out))
