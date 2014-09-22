@@ -1,26 +1,9 @@
 #lang racket
 
-(require racket/promise)
-
 (struct %label
   (name
    pos)
   #:transparent)
-
-(struct %section
-  (name
-   start
-   labels)
-  #:transparent)
-(define %sections (make-hash))
-
-(define (asm-b n val)
-  (bitwise-and 255 (arithmetic-shift val (* 8 n))))
-(define (asm-w n val)
-  (bitwise-and #xffff (arithmetic-shift val (* 16 n))))
-(define (asm-d n val)
-  (bitwise-and #xffffffff (arithmetic-shift val (* 32 n))))`
-(define big-endian #f)
 
 (define @ 0)
 (define (@+ n)
@@ -31,6 +14,60 @@
   (- n @))
 (define @-labels
   (make-hasheq))
+(struct %label-promise
+  (depends
+   calculate)
+  #:transparent)
+
+(struct %section
+  (name
+   start
+   labels)
+  #:transparent)
+(define %sections (make-hash))
+
+(define %current-section (%section '<top> 0 (make-hash)))
+(define (set-label label)
+  (hash-set! (%section-labels %current-section) label (%label label @)))
+(define (get-label label)
+  (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (get-label label))))))
+
+(define-values (+a -a /a *a)
+  (letrec
+      ((mkop (lambda (op)
+               (letrec ((p-op 
+                         (match-lambda*
+                           [(list (? number? a) (? number? b)) (op a b)]
+                           [(list (? symbol? sym) x) (p-op (get-label sym) x)]
+                           [(list x (? symbol? sym)) (p-op x (get-label sym))]
+                           [(list (? %label-promise? l) (? number? a)) (%label-promise (%label-promise-depends l)
+                                                                                       (lambda () (op ((%label-promise-calculate l))
+                                                                                                      a)))]
+                           [(list (? number? a) (? %label-promise? l)) (%label-promise (%label-promise-depends l)
+                                                                                       (lambda () (op a 
+                                                                                                      ((%label-promise-calculate l)))))]
+                           [(list (? %label-promise? a) (? %label-promise? b))
+                            (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                            (lambda () (op ((%label-promise-calculate a))
+                                                           ((%label-promise-calculate b)))))])))
+                 p-op
+                 )))
+       )
+    (values (lambda args (foldl (mkop +) 0 args))
+            (lambda args (foldr (mkop -) 0 args))
+            (lambda args (foldl (mkop *) 1 args))
+            (lambda args (foldr (mkop /) 1 args)))))
+
+
+
+(define (asm-b n val)
+  (bitwise-and 255 (arithmetic-shift val (* 8 n))))
+(define (asm-w n val)
+  (bitwise-and #xffff (arithmetic-shift val (* 16 n))))
+(define (asm-d n val)
+  (bitwise-and #xffffffff (arithmetic-shift val (* 32 n))))`
+(define big-endian #f)
+
 (define %bytes (open-output-bytes))
 (define %assembling% #f)
 (define %big-endian% #f)
@@ -173,12 +210,6 @@
   (let ([str (symbol->string sym)])
     (string->symbol (substring str 0 (- (string-length str) 1)))))
 
-(define (set-label sym)
-  (hash-set! @-labels sym @))
-
-(define (get-label sym)
-  (hash-ref! @-labels sym 0))
-
 (define (look-for-labels code)
   (filter (lambda (statement)
             (cond
@@ -238,11 +269,15 @@
 
 (make-architecture 'null #f %asm-base)
 
-(define (asm-arch arch body)
+(define (asm-with-arch arch body)
   (let ((%old-arch% %current-architecture%)
         (dummy (set %current-architecture% arch))
         (assembled (asm body)))
     (set %current-architecture% %old-arch%)
     (values assembled)))
 
-(provide (all-defined-out))
+(provide (all-defined-out)
+         (rename-out [+a +]
+                     [-a -]
+                     [*a *]
+                     [/a /]))
