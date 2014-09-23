@@ -32,10 +32,10 @@
 (define (get-label label)
   (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (get-label label))))))
 
-(define-values (+a -a /a *a)
+(define-values (+a -a /a *a %or %and %xor)
   (letrec
       ((mkop (lambda (op)
-               (letrec ((p-op 
+               (letrec ((p-op
                          (match-lambda*
                            [(list (? number? a) (? number? b)) (op a b)]
                            [(list (? symbol? sym) x) (p-op (get-label sym) x)]
@@ -50,32 +50,85 @@
                             (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
                                             (lambda () (op ((%label-promise-calculate a))
                                                            ((%label-promise-calculate b)))))])))
-                 p-op
-                 )))
-       )
+                 p-op))))
     (values (lambda args (foldl (mkop +) 0 args))
-            (lambda args (foldr (mkop -) 0 args))
+            (lambda args (foldl (mkop -) (car args) (cdr args)))
             (lambda args (foldl (mkop *) 1 args))
-            (lambda args (foldr (mkop /) 1 args)))))
+            (lambda args (foldl (mkop /) (car args) (cdr args)))
+            (lambda args (foldl (mkop bitwise-ior) (car args) (cdr args)))
+            (lambda args (foldl (mkop bitwise-and) (car args) (cdr args)))
+            (lambda args (foldl (mkop bitwise-xor) (car args) (cdr args)))
+            )))
 
+(define-values (%not %abs)
+  (let ([mkop (lambda (op)
+                (match-lambda
+                  [(? number? i) (op i)]
+                  [(? %label-promise? l) (%label-promise (%label-promise-depends l)
+                                                         (lambda () (op ((%label-promise-calculate l)))))]
+                  ))])
+    (values (mkop bitwise-not)
+            (mkop abs))))
 
-
+(define-values (<< >>
+                mod
+                ><<-n ><<-b ><<-w ><<-d ><<-q
+                >><-n >><-b >><-w >><-d >><-q)
+  (letrec ([mkop (lambda (op)
+                   (match-lambda*
+                     [(list (? integer? a) (? integer? b)) (op a b)]
+                     [(list (? %label-promise? a) (? integer? b))
+                      (%label-promise (%label-promise-depends a)
+                                      (lambda () (op ((%label-promise-calculate a)) b)))]
+                     [(list (? integer? a) (? %label-promise? b))
+                      (%label-promise (%label-promise-depends b)
+                                      (lambda () (op a ((%label-promise-calculate b)))))]
+                     [(list (? %label-promise? a) (? %label-promise? b))
+                      (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                      (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b)))))]))]
+           [%<< (mkop arithmetic-shift)]
+           [%>> (mkop (lambda (a b) (arithmetic-shift (-a a) b)))]
+           [mod (mkop modulo)]
+           [mkrot (lambda (size mask op)
+                    (lambda (a b)
+                      (let ([~a (%and mask a)]
+                            [r (mod b size)])
+                        (%and mask (%or (op ~a r) (op ~a (+a (-a size) r)))))))])
+    (values %<< %>> mod
+            (mkop (mkrot 4 #xf %<<))
+            (mkop (mkrot 8 #xff %<<))
+            (mkop (mkrot 16 #xffff %<<))
+            (mkop (mkrot 32 #xffffffff %<<))
+            (mkop (mkrot 64 #xffffffffffffffff %<<))
+            (mkop (mkrot 4 #xf %>>))
+            (mkop (mkrot 8 #xff %>>))
+            (mkop (mkrot 16 #xffff %>>))
+            (mkop (mkrot 32 #xffffffff %>>))
+            (mkop (mkrot 64 #xffffffffffffffff %>>))
+            )))
+  
 (define (asm-b n val)
-  (bitwise-and 255 (arithmetic-shift val (* 8 n))))
+  (%and 255 (<< val (*a 8 n))))
 (define (asm-w n val)
-  (bitwise-and #xffff (arithmetic-shift val (* 16 n))))
+  (%and #xffff (<< val (*a 16 n))))
 (define (asm-d n val)
-  (bitwise-and #xffffffff (arithmetic-shift val (* 32 n))))`
+  (%and #xffffffff (<< val (*a 32 n))))`
 (define big-endian #f)
 
 (define %bytes (open-output-bytes))
 (define %assembling% #f)
 (define %big-endian% #f)
+(define %promises (list))
+
 (define (asm-write-byte b)
   (begin
-    (if %assembling%
-        (write-byte (bitwise-and 255 (floor (inexact->exact b))) %bytes)
-        #f)
+    (if (%label-promise? b)
+        (let
+            ([*@ @])
+            (write-byte 0 %bytes)
+            (set! %promises (append %promises (list (lambda () (begin (@= *@)
+                                                                      (asm-write-byte (%label-promise-calculate b))))))))
+        (write-byte (%and 255 (floor (inexact->exact b))) %bytes))
     (@+ 1)))
 (define (asm-write-byte-list l)
   (for-each asm-write-byte l))
@@ -195,12 +248,6 @@
          (statement ...) ...
          (hash-set! %sections 'name s)))]))
 
-
-;(define-syntax (memory-map stx)
-;  (syntax-parse stx
-;    [(memory-map (~optional (~seq
-
-
 (define (label? sym)
   (if (symbol? sym)
       (if (eq? (last (string->list (symbol->string sym))) #\:)
@@ -251,21 +298,15 @@
          (labeled-code (label-code code labels))
          (big-endian (%architecture-big-endian (hash-ref %architectures %current-architecture%)))
          (recognizer (%architecture-recognizer (hash-ref %architectures %current-architecture%)))
-         (was-assembling %assembling%)
-         (~@ @)
          (old-bytes %bytes)
          (new-bytes (open-output-bytes))]
+    (set! %promises (list))
     (set! %bytes new-bytes)
     (set! %big-endian% big-endian)
-    (set! %assembling% #f)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
-    (set! %assembling% #t)
-    (@= ~@)
-    (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
-    (set! %assembling% was-assembling)
     (set! %big-endian% old-big-endian)
     (set! %bytes old-bytes)
-    (get-output-bytes new-bytes)))
+    (values (get-output-bytes new-bytes) %promises)))
 
 (make-architecture 'null #f %asm-base)
 
@@ -280,4 +321,6 @@
          (rename-out [+a +]
                      [-a -]
                      [*a *]
-                     [/a /]))
+                     [/a /]
+                     [%not !]
+                     ))
