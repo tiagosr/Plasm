@@ -36,23 +36,23 @@
   (letrec
       ((mkop (lambda (op)
                (letrec ((p-op
-                         (match-lambda*
-                           [(list (? number? a) (? number? b)) (op a b)]
-                           [(list (? symbol? sym) x) (p-op (get-label sym) x)]
-                           [(list x (? symbol? sym)) (p-op x (get-label sym))]
+                         (match-lambda* ; foldl applies arguments backwards
+                           [(list (? number? a) (? number? b)) (op b a)]
                            [(list (? %label-promise? l) (? number? a)) (%label-promise (%label-promise-depends l)
+                                                                                       (lambda () (op a
+                                                                                                      ((%label-promise-calculate l)))))]
+                           [(list (? number? a) (? %label-promise? l)) (%label-promise (%label-promise-depends l)
                                                                                        (lambda () (op ((%label-promise-calculate l))
                                                                                                       a)))]
-                           [(list (? number? a) (? %label-promise? l)) (%label-promise (%label-promise-depends l)
-                                                                                       (lambda () (op a 
-                                                                                                      ((%label-promise-calculate l)))))]
                            [(list (? %label-promise? a) (? %label-promise? b))
                             (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
-                                            (lambda () (op ((%label-promise-calculate a))
-                                                           ((%label-promise-calculate b)))))])))
+                                            (lambda () (op ((%label-promise-calculate b))
+                                                           ((%label-promise-calculate a)))))])))
                  p-op))))
     (values (lambda args (foldl (mkop +) 0 args))
-            (lambda args (foldl (mkop -) (car args) (cdr args)))
+            (match-lambda* 
+              [(list a) ((mkop -) 0 a)]
+              [(list a rest ...) (foldl (mkop -) a rest)])
             (lambda args (foldl (mkop *) 1 args))
             (lambda args (foldl (mkop /) (car args) (cdr args)))
             (lambda args (foldl (mkop bitwise-ior) (car args) (cdr args)))
