@@ -127,6 +127,22 @@
                                                                                               (lambda () (between? a ((%label-promise-calculate b)) c)))))
                                                                  (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
                                                                  #t)]
+    [(list (? %label-promise? a) (? %label-promise? b) (? number? c))  (let ((promise (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                                                                                      (lambda () (between? ((%label-promise-calculate a)) ((%label-promise-calculate b)) c)))))
+                                                                         (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                         #t)]
+    [(list (? number? a) (? %label-promise? b) (? %label-promise? c))  (let ((promise (%label-promise (append (%label-promise-depends b) (%label-promise-depends c))
+                                                                                                      (lambda () (between? a ((%label-promise-calculate b)) ((%label-promise-calculate c)))))))
+                                                                         (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                         #t)]
+    [(list (? %label-promise? a) (? number? b) (? %label-promise? c))  (let ((promise (%label-promise (append (%label-promise-depends a) (%label-promise-depends c))
+                                                                                                      (lambda () (between? ((%label-promise-calculate a)) b ((%label-promise-calculate c)))))))
+                                                                         (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                         #t)]
+    [(list (? %label-promise? a) (? %label-promise? b) (? %label-promise? c))  (let ((promise (%label-promise (append (%label-promise-depends a) (%label-promise-depends b) (%label-promise-depends c))
+                                                                                                              (lambda () (between? ((%label-promise-calculate a)) ((%label-promise-calculate b)) ((%label-promise-calculate c)))))))
+                                                                                 (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                                 #t)]
     ))
 
 (define between
