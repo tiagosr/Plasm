@@ -2,12 +2,9 @@
 
 (require "plasm.rkt")
 
-(define (65imm? n)
-  (number? n))
-(define (65addr? n)
-  (number? n))
-(define (65rel? n)
-  (number? n))
+(define (65imm? n)  (between? -128 n 255))
+(define (65addr? n) (between? 0 n 65535))
+(define (65rel? n)  (between? -128 (->@ n) 255))
 
 (define (65imm op n)
   (db op n))

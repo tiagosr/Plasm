@@ -2,29 +2,15 @@
 
 (require "plasm.rkt")
 
-(define (zb? n)
-  (number? n))
+(define (zb? n)   (between? -128 n 255))
+(define (zw? n)   (between? -32768 n 65535))
+(define (za? n)   (between? 0 n 65535))
+(define (zbit? n) (between? 0 n 7))
+(define (zrel? n) (between? -128 (->@ n) 127))
 
-(define (zb op n)
-  (db op n))
-
-(define (zw? n)
-  (number? n))
-(define (za? n)
-  (number? n))
-
-(define (zbit? n)
-  (and (< n 8)
-       (>= n 0)))
-
-(define (zw op n)
-  (db op (asm-b 0 n) (asm-b 1 n)))
-
-(define (zrel? n)
-  (number? n))
-
-(define (zrel op n)
-  (db op (->@ n)))
+(define (zb op n) (db op n))
+(define (zw op n) (db op (asm-b 0 n) (asm-b 1 n)))
+(define (zrel op n) (db op (->@ n)))
 
 (define (zed op)
   (db #xed op))
@@ -59,18 +45,8 @@
 (define (zfdcbs op i)
   (db #xfd #xcb i op))
 
-(define (between? upper n lower)
-  (if (> n lower)
-      (if (< n upper)
-          #t
-          #f)
-      #f))
 (define (zoff? i)
-  (if (number? i)
-      (if (between? -128 i 127)
-          #t
-          #f)
-      #f))
+  (between? -128 i 127))
 
 
 (define %z80-common

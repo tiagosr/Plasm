@@ -6,12 +6,6 @@
   #:transparent)
 
 (define @ 0)
-(define (@+ n)
-  (set! @ (+ @ n)))
-(define (@= n)
-  (set! @ n))
-(define (->@ n)
-  (- n @))
 (define @-labels
   (make-hasheq))
 (struct %label-promise
@@ -25,6 +19,13 @@
    labels)
   #:transparent)
 (define %sections (make-hash))
+(define %consistency-checks (list))
+(define (%add-consistency-check check)
+  (set! %consistency-checks (append %consistency-checks (list check))))
+(define (%check-consistency)
+  (andmap (lambda (item)
+            ((%label-promise-calculate item)))
+          %consistency-checks))
 
 (define %current-section (%section '<top> 0 (make-hash)))
 (define (set-label label)
@@ -106,17 +107,66 @@
             (mkop (mkrot 32 #xffffffff %>>))
             (mkop (mkrot 64 #xffffffffffffffff %>>))
             )))
-  
+(define between?
+  (match-lambda*
+    [(list (? number? a) (? number? b) (? number? c))          (and (<= a b) (<= b c))]
+    ; delay decision to consistency check in the other cases
+    [(list (? %label-promise? a) (? number? b) (? number? c))  (if (>= b c)
+                                                                   (let ((promise (%label-promise (%label-promise-depends a)
+                                                                                                  (lambda () (<= a ((%label-promise-calculate a)))))))
+                                                                     (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                     #t)
+                                                                   #f)]
+    [(list (? number? a) (? number? b) (? %label-promise? c))  (if (<= a b)
+                                                                   (let ((promise (%label-promise (%label-promise-depends c)
+                                                                                                  (lambda () (>= b ((%label-promise-calculate c)))))))
+                                                                     (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                     #t)
+                                                                   #f)]
+    [(list (? number? a) (? %label-promise? b) (? number? c))  (let ((promise (%label-promise (%label-promise-depends b)
+                                                                                              (lambda () (between? a ((%label-promise-calculate b)) c)))))
+                                                                 (%add-consistency-check (lambda () ((%label-promise-calculate promise)))) 
+                                                                 #t)]
+    ))
+
+(define between
+  (match-lambda*
+    [(list (? number? a) (? number? b) (? number? c))         (if (and (>= a b) (<= b c))
+                                                                  b
+                                                                  (raise-result-error 'between (format "not between ~a and ~a" a c) b))]
+    [(list (? %label-promise? a) (? number? b) (? number? c)) (%label-promise (%label-promise-depends a)
+                                                                              (lambda () (between ((%label-promise-calculate a)) b c)))]
+    [(list (? number? a) (? %label-promise? b) (? number? c)) (%label-promise (%label-promise-depends b)
+                                                                              (lambda () (between a ((%label-promise-calculate b)) c)))]
+    [(list (? number? a) (? number? b) (? %label-promise? c)) (%label-promise (%label-promise-depends c)
+                                                                              (lambda () (between a b ((%label-promise-calculate c)))))]
+    
+    [(list (? %label-promise? a) (? number? b) (? %label-promise? c)) (%label-promise (append (%label-promise-depends a) (%label-promise-depends c))
+                                                                                      (lambda () (between ((%label-promise-calculate a)) b ((%label-promise-calculate c)))))]
+    [(list (? %label-promise? a) (? %label-promise? b) (? number? c)) (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                                                                      (lambda () (between ((%label-promise-calculate a)) ((%label-promise-calculate b)) c)))]
+    [(list (? number? a) (? %label-promise? b) (? %label-promise? c)) (%label-promise (append (%label-promise-depends b) (%label-promise-depends c))
+                                                                                      (lambda () (between a ((%label-promise-calculate b)) ((%label-promise-calculate c)))))]
+    
+    [(list (? %label-promise? a) (? %label-promise? b) (? %label-promise? c)) (%label-promise (append (%label-promise-depends a) (%label-promise-depends b) (%label-promise-depends c))
+                                                                                              (lambda () (between ((%label-promise-calculate a)) ((%label-promise-calculate b)) ((%label-promise-calculate c)))))]
+    ))
+(define (@+ n)
+  (set! @ (+a @ n)))
+(define (@= n)
+  (set! @ n))
+(define (->@ n)
+  (-a n @))
+
 (define (asm-b n val)
   (%and 255 (<< val (*a 8 n))))
 (define (asm-w n val)
   (%and #xffff (<< val (*a 16 n))))
 (define (asm-d n val)
-  (%and #xffffffff (<< val (*a 32 n))))`
+  (%and #xffffffff (<< val (*a 32 n))))
 (define big-endian #f)
 
 (define %bytes (open-output-bytes))
-(define %assembling% #f)
 (define %big-endian% #f)
 (define %promises (list))
 

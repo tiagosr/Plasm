@@ -2,37 +2,14 @@
 
 (require "plasm.rkt")
 
-(define (68kimmb? n)
-  (and (>= n -128)
-       (<= n 255)))
-
-(define (68kimmw? n)
-  (and (>= n -32768)
-       (<= n 65535)))
-
-(define (68kimml? n)
-  (and (>= n (- #x80000000))
-       (<= n #xffffffff)))
-
-(define (68kdisp.b? n)
-  (and (>= n -128)
-       (<= n 127)))
-
-(define (68kdispw? n)
-  (and (>= n -32768)
-       (<= n 32767)))
-
-(define (68kaddrw? n)
-  (and (>= n 0)
-       (<= n 65535)))
-
-(define (68kaddrl? n)
-  (and (>= n 0)
-       (<= n #xffffffff)))
-
-(define (68kdispb? n)
-  (and (>= n (- #x80))
-       (<= n #x7f)))
+(define (68kimmb? n)   (between? -128 n 255))
+(define (68kimmw? n)   (between? -32768 n 65535))
+(define (68kimml? n)   (between? (- #x80000000) n #xffffffff))
+(define (68kdisp.b? n) (between? -128 n 127))
+(define (68kdispw? n)  (between? -32768 n 32767))
+(define (68kaddrw? n)  (between? 0 n 65535))
+(define (68kaddrl? n)  (between? 0 n #xffffffff))
+(define (68kdispb? n)  (between? -128 n 127))
 
 (define (68kreg.s? reg)
   (member reg '(d0.w d1.w d2.w d3.w d4.w d5.w d6.w d7.w
@@ -65,6 +42,27 @@
                 (-a7)
                 (-sp))))
 
+(define 68kreg-dest-num
+  (match-lambda
+    ['d0 #b000000000000]
+    ['d1 #b001000000000]
+    ['d2 #b010000000000]
+    ['d3 #b011000000000]
+    ['d4 #b100000000000]
+    ['d5 #b101000000000]
+    ['d6 #b110000000000]
+    ['d7 #b111000000000]
+    
+    ['a0 #b000000000000]
+    ['a1 #b001000000000]
+    ['a2 #b010000000000]
+    ['a3 #b011000000000]
+    ['a4 #b100000000000]
+    ['a5 #b101000000000]
+    ['a6 #b110000000000]
+    ['a7 #b111000000000]
+    ['sp #b111000000000]
+    ))
 (define 68kreg-mode+num
   (match-lambda
     ['d0 #b000000]
