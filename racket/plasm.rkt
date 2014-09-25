@@ -107,6 +107,34 @@
             (mkop (mkrot 32 #xffffffff %>>))
             (mkop (mkrot 64 #xffffffffffffffff %>>))
             )))
+
+(define-values (%< %> %= %<= %>= !=)
+  (let ((mkop (lambda (op)
+                   (match-lambda*
+                     [(list (? number? a) (? number? b)) (op a b)]
+                     [(list (? %label-promise? a) (? number? b))
+                      (begin
+                        (%add-consistency-check (%label-promise (%label-promise-depends a)
+                                                                (lambda () (op ((%label-promise-calculate a)) b)))
+                                                )
+                        #t)]
+                     [(list (? number? a) (? %label-promise? b))
+                      (begin
+                        (%add-consistency-check (%label-promise (%label-promise-depends b)
+                                                                (lambda () (op a ((%label-promise-calculate b))))))
+                        #t)]
+                     [(list (? %label-promise? a) (? %label-promise? b))
+                      (begin
+                        (%add-consistency-check (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                                                (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b))))))
+                        #t)]
+                     ))))
+    (values (mkop <)
+            (mkop >)
+            (mkop =)
+            (mkop <=)
+            (mkop >=)
+            (mkop (lambda (a b) (not (= a b)))))))
 (define between?
   (match-lambda*
     [(list (? number? a) (? number? b) (? number? c))          (and (<= a b) (<= b c))]
@@ -196,7 +224,6 @@
              (set! %promises (append %promises (list (lambda () (begin (@= *@)
                                                                        (asm-write-byte ((%label-promise-calculate b)))))))))]
           [(%label? b) (asm-write-byte (%label-pos b))]
-          [(symbol? b) (asm-write-byte (get-label b))]
           [else (let
                     [(head (take %bytes @))
                      (tail (if (< @ (length %bytes))
@@ -333,11 +360,10 @@
     (string->symbol (substring str 0 (- (string-length str) 1)))))
 
 (define (look-for-labels code)
-  (filter (lambda (statement)
-            (cond
-              [(label? statement) #t]
-              ; test for sections here
-              [else #f])) code))
+  (filter symbol? (map (match-lambda
+         [(? label? l) (unlabelize l)]
+         [`(set-label ,(? symbol? s)) s]
+         [_ #f]) code)))
 
 (struct %architecture
   (name
@@ -376,7 +402,7 @@
 (define %current-architecture% 'null)
 (define (asm code)
   (let* [(old-big-endian %big-endian%)
-         (labels (map unlabelize (look-for-labels code)))
+         (labels (look-for-labels code))
          (labeled-code (label-code code labels))
          (big-endian (%architecture-big-endian (hash-ref %architectures %current-architecture%)))
          (recognizer (%architecture-recognizer (hash-ref %architectures %current-architecture%)))
@@ -385,7 +411,7 @@
     (set! %promises (list))
     (set! %bytes new-bytes)
     (set! %big-endian% big-endian)
-    ;(display labels)
+    (display labels)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
     (%check-consistency)
     (for-each (lambda (promise) (promise)) %promises)
@@ -398,10 +424,12 @@
 
 (define (asm-with-arch arch body)
   (let ((%old-arch% %current-architecture%)
-        (dummy (set %current-architecture% arch))
+        (dummy (set! %current-architecture% arch))
         (assembled (asm body)))
-    (set %current-architecture% %old-arch%)
+    (set! %current-architecture% %old-arch%)
     (values assembled)))
+
+
 
 (provide (all-defined-out)
          (rename-out [+a +]
@@ -409,4 +437,9 @@
                      [*a *]
                      [/a /]
                      [%not !]
+                     [%< <]
+                     [%> >]
+                     [%= =]
+                     [%<= <=]
+                     [%>= >=]
                      ))
