@@ -31,7 +31,7 @@
 (define (set-label label)
   (hash-set! (%section-labels %current-section) label (%label label @)))
 (define (get-label label)
-  (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (get-label label))))))
+  (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (%label-pos (get-label label)))))))
 
 (define-values (+a -a /a *a %or %and %xor)
   (letrec
@@ -182,20 +182,29 @@
   (%and #xffffffff (<< val (*a 32 n))))
 (define big-endian #f)
 
-(define %bytes (open-output-bytes))
+(define %bytes (list))
 (define %big-endian% #f)
 (define %promises (list))
 
 (define (asm-write-byte b)
   (begin
-    (if (%label-promise? b)
-        (let
-            ([*@ @])
-            (write-byte 0 %bytes)
-            (set! %promises (append %promises (list (lambda () (begin (@= *@)
-                                                                      (asm-write-byte (%label-promise-calculate b))))))))
-        (write-byte (%and 255 (floor (inexact->exact b))) %bytes))
-    (@+ 1)))
+    ;(printf "writing byte ~a at ~a~n" b @)
+    (cond [(%label-promise? b)
+           (let
+               ([*@ @])
+             (asm-write-byte 0)
+             (set! %promises (append %promises (list (lambda () (begin (@= *@)
+                                                                       (asm-write-byte ((%label-promise-calculate b)))))))))]
+          [(%label? b) (asm-write-byte (%label-pos b))]
+          [(symbol? b) (asm-write-byte (get-label b))]
+          [else (let
+                    [(head (take %bytes @))
+                     (tail (if (< @ (length %bytes))
+                               (drop %bytes (+ 1 @))
+                               '()))]
+                  (set! %bytes (append head (list (%and 255 (floor (inexact->exact b)))) tail))
+                  (@+ 1))])
+    ))
 (define (asm-write-byte-list l)
   (for-each asm-write-byte l))
 
@@ -208,18 +217,18 @@
   (asm-write-byte-list (asm-flatten rest)))
 (define (dw . rest)
   (case %big-endian%
-    [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
-    [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n))) (asm-flatten rest)))]))
+    [(#t) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
+    [(#f) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 0 n) (asm-b 1 n))) (asm-flatten rest)))]))
 (define (dd . rest)
   (case %big-endian%
-    [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
-    [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n))) (asm-flatten rest)))]))
+    [(#t) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
+    [(#f) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n))) (asm-flatten rest)))]))
 (define (dq . rest)
   (case %big-endian%
-    [(#t) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 7 n) (asm-b 6 n) (asm-b 5 n) (asm-b 4 n)
-                                                          (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
-    [(#f) (for-each asm-write-byte-list (map (λ (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n)
-                                                          (asm-b 4 n) (asm-b 5 n) (asm-b 6 n) (asm-b 7 n))) (asm-flatten rest)))]))
+    [(#t) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 7 n) (asm-b 6 n) (asm-b 5 n) (asm-b 4 n)
+                                                               (asm-b 3 n) (asm-b 2 n) (asm-b 1 n) (asm-b 0 n))) (asm-flatten rest)))]
+    [(#f) (for-each asm-write-byte-list (map (lambda (n) (list (asm-b 0 n) (asm-b 1 n) (asm-b 2 n) (asm-b 3 n)
+                                                               (asm-b 4 n) (asm-b 5 n) (asm-b 6 n) (asm-b 7 n))) (asm-flatten rest)))]))
 (define (dsb count value)
   (for-each db (for/list ([i count]) value)))
 (define (dsw count value)
@@ -342,11 +351,18 @@
   (let [(arch (%architecture name endianess recognizer))]
     (hash-set! %architectures name arch)))
 
-
+(define (label-code-inside-list l labels)
+  (if (and (list? l)
+           (< 1 (length l)))
+      (append (list (car l)) (map (lambda (q) (if (member q labels)
+                                                  (get-label q)
+                                                  (label-code-inside-list q labels))) (cdr l)))
+      l))
+    
 (define (label-code code labels)
   (map (match-lambda
          [(? label? lbl) `(set-label ',(unlabelize lbl))]
-         [rest `,rest]) code))
+         [rest `,rest]) (label-code-inside-list code labels)))
 
 (define (asm-keyword thing ops)
   (match thing
@@ -360,19 +376,23 @@
 (define %current-architecture% 'null)
 (define (asm code)
   (let* [(old-big-endian %big-endian%)
-         (labels (look-for-labels code))
+         (labels (map unlabelize (look-for-labels code)))
          (labeled-code (label-code code labels))
          (big-endian (%architecture-big-endian (hash-ref %architectures %current-architecture%)))
          (recognizer (%architecture-recognizer (hash-ref %architectures %current-architecture%)))
          (old-bytes %bytes)
-         (new-bytes (open-output-bytes))]
+         (new-bytes (list))]
     (set! %promises (list))
     (set! %bytes new-bytes)
     (set! %big-endian% big-endian)
+    ;(display labels)
     (for-each (lambda (op) (asm-keyword op recognizer)) labeled-code)
+    (%check-consistency)
+    (for-each (lambda (promise) (promise)) %promises)
     (set! %big-endian% old-big-endian)
+    (set! new-bytes %bytes)
     (set! %bytes old-bytes)
-    (values (get-output-bytes new-bytes) %promises)))
+    (values new-bytes)))
 
 (make-architecture 'null #f %asm-base)
 
