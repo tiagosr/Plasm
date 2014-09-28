@@ -42,6 +42,61 @@
                 (-a6)
                 (-a7)
                 (-sp))))
+(define (68kreglist? l)
+  (for/fold 
+      ([in-list #t])
+      ([item l])
+    (and in-list
+      (or (68kdreg? item)
+          (68kareg? item)))))
+(define 68kreglist-maskitem-posinc
+  (match-lambda
+    ['d0    #b0000000000000001]
+    ['d1    #b0000000000000010]
+    ['d2    #b0000000000000100]
+    ['d3    #b0000000000001000]
+    ['d4    #b0000000000010000]
+    ['d5    #b0000000000100000]
+    ['d6    #b0000000001000000]
+    ['d7    #b0000000010000000]
+    ['a0    #b0000000100000000]
+    ['a1    #b0000001000000000]
+    ['a2    #b0000010000000000]
+    ['a3    #b0000100000000000]
+    ['a4    #b0001000000000000]
+    ['a5    #b0010000000000000]
+    ['a6    #b0100000000000000]
+    ['a7    #b1000000000000000]
+    ))
+(define (68kreglist-mask-posinc l)
+  (for/fold
+      ([mask 0])
+      ([item l])
+    (|| mask (68kreglist-maskitem-posinc item))))
+(define 68kreglist-maskitem-predec
+  (match-lambda
+    ['a7 #b0000000000000001]
+    ['a6 #b0000000000000010]
+    ['a5 #b0000000000000100]
+    ['a4 #b0000000000001000]
+    ['a3 #b0000000000010000]
+    ['a2 #b0000000000100000]
+    ['a1 #b0000000001000000]
+    ['a0 #b0000000010000000]
+    ['d7 #b0000000100000000]
+    ['d6 #b0000001000000000]
+    ['d5 #b0000010000000000]
+    ['d4 #b0000100000000000]
+    ['d3 #b0001000000000000]
+    ['d2 #b0010000000000000]
+    ['d1 #b0100000000000000]
+    ['d0 #b1000000000000000]))
+(define (68kreglist-mask-predec l)
+  (for/fold
+      ([mask 0])
+      ([item l])
+    (|| mask (68kreglist-maskitem-predec item))))
+        
 
 (define 68kreg-dest-num
   (match-lambda
@@ -142,7 +197,7 @@
     [(? 68kimmw? imm) `(,imm)]
     ))
 
-(define 68kdreg-mode2
+(define 68kdreg-num2
   (match-lambda
     ['d0 #b0000000000000000]
     ['d1 #b0000001000000000]
@@ -152,7 +207,7 @@
     ['d5 #b0000101000000000]
     ['d6 #b0000110000000000]
     ['d7 #b0000111000000000]))
-(define 68kareg-mode2
+(define 68kareg-num2
   (match-lambda
     ['a0 #b0000000000000000]
     ['a1 #b0000001000000000]
@@ -165,8 +220,8 @@
     ['sp #b0000111000000000]))
 (define 68kreg-mode+num2
   (match-lambda
-    [(? 68kdreg? d) (68kdreg-mode2 d)]
-    [(? 68kareg? a) (+ #b001000000 (68kareg-mode2 a))]
+    [(? 68kdreg? d) (68kdreg-num2 d)]
+    [(? 68kareg? a) (+ #b001000000 (68kareg-num2 a))]
     [`(,(? 68kimml? disp) ,(? 68kareg? a))                   (+ (68kreg-mode+num2 a) #b100000000)]
     [`(,(? 68kimml? disp) ,(? 68kareg? a))                   (+ (68kreg-mode+num2 a) #b100000000)]
     [`(,(? 68kdispb? disp) ,(? 68kareg? a) ,(? 68kreg.s? x)) (+ (68kreg-mode+num2 a) #b101000000)]
@@ -237,13 +292,13 @@
    [`(cmpi.l ,(? 68kreg? reg) ,(? 68kimml? imm)) (dw (+ #b0000110010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) (asm-w 1 imm) (asm-w 0 imm))]
    
    [`(btst ,(? 68kreg? reg) ,(? 68kbitindex? imm))   (dw (+ #b0000100000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
-   [`(btst ,(? 68kreg? src) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000000100000000 (68kreg-mode+num src) (68kdreg-mode2 dest)) (68kreg-extra-words src) imm)]
+   [`(btst ,(? 68kreg? src) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000000100000000 (68kreg-mode+num src) (68kdreg-num2 dest)) (68kreg-extra-words src) imm)]
    [`(bchg ,(? 68kreg? reg) ,(? 68kbitindex? imm))   (dw (+ #b0000100001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
-   [`(bchg ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100101000000 (68kreg-mode+num reg) (68kdreg-mode2 dest)) (68kreg-extra-words reg) imm)]
+   [`(bchg ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100101000000 (68kreg-mode+num reg) (68kdreg-num2 dest)) (68kreg-extra-words reg) imm)]
    [`(bclr ,(? 68kreg? reg) ,(? 68kbitindex? imm))   (dw (+ #b0000100010000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
-   [`(bclr ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100110000000 (68kreg-mode+num reg) (68kdreg-mode2 dest)) (68kreg-extra-words reg) imm)]
+   [`(bclr ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100110000000 (68kreg-mode+num reg) (68kdreg-num2 dest)) (68kreg-extra-words reg) imm)]
    [`(bset ,(? 68kreg? reg) ,(? 68kbitindex? imm))   (dw (+ #b0000100011000000 (68kreg-mode+num reg)) (68kreg-extra-words reg) imm)]
-   [`(bset ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100111000000 (68kreg-mode+num reg) (68kdreg-mode2 dest)) (68kreg-extra-words reg) imm)]
+   [`(bset ,(? 68kreg? reg) ,(? 68kbitindex? imm) ,(? 68kdreg? dest))   (dw (+ #b0000100111000000 (68kreg-mode+num reg) (68kdreg-num2 dest)) (68kreg-extra-words reg) imm)]
    
    [`(negx.b ,(? 68kreg? reg))                   (dw (+ #b0100000000000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
    [`(negx.w ,(? 68kreg? reg))                   (dw (+ #b0100000001000000 (68kreg-mode+num reg)) (68kreg-extra-words reg))]
@@ -330,12 +385,28 @@
    [`(dbgt ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101111011001000 (68kreg-mode+num reg)) disp)]
    [`(dble ,(? 68kdreg? reg) ,(? 68kdispw? disp))                 (dw (+ #b0101111111001000 (68kreg-mode+num reg)) disp)]
    
-   [`(movea.b ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0001000001000000 (68kreg-mode+num src) (68kareg-mode2 dst)) (68kreg-extra-words src))]
-   [`(movea.w ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0011000001000000 (68kreg-mode+num src) (68kareg-mode2 dst)) (68kreg-extra-words src))]
-   [`(movea.l ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0010000001000000 (68kreg-mode+num src) (68kareg-mode2 dst)) (68kreg-extra-words src))]
+   [`(movea.b ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0001000001000000 (68kreg-mode+num src) (68kareg-num2 dst)) (68kreg-extra-words src))]
+   [`(movea.w ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0011000001000000 (68kreg-mode+num src) (68kareg-num2 dst)) (68kreg-extra-words src))]
+   [`(movea.l ,(? 68kreg? src) ,(? 68kareg? dst))  (dw (+ #b0010000001000000 (68kreg-mode+num src) (68kareg-num2 dst)) (68kreg-extra-words src))]
    
    [`(move.b ,(? 68kreg? src) ,(? 68kreg? dst))    (dw (+ #b0001000000000000 (68kreg-mode+num src) (68kreg-mode+num2 dst)) (68kreg-extra-words src) (68kreg-extra-words dst))]
    [`(move.w ,(? 68kreg? src) ,(? 68kreg? dst))    (dw (+ #b0011000000000000 (68kreg-mode+num src) (68kreg-mode+num2 dst)) (68kreg-extra-words src) (68kreg-extra-words dst))]
    [`(move.l ,(? 68kreg? src) ,(? 68kreg? dst))    (dw (+ #b0010000000000000 (68kreg-mode+num src) (68kreg-mode+num2 dst)) (68kreg-extra-words src) (68kreg-extra-words dst))]
+   
+   [`(moveq ,(? 68kimmb? byte) ,(? 68kdreg? dst))  (dw (+ #b0111000000000000 (and byte #xff) (68kdreg-num2 dst)))]
+   
+   [`(movem.w ,(? 68kreglist? rlist) ,(? 68kareg.posinc? dst)) (dw (+ #b0100100010000000 (68kreg-mode+num dst)) (68kreg-extra-words dst) (68kreglist-mask-posinc rlist))]
+   [`(movem.l ,(? 68kreglist? rlist) ,(? 68kareg.posinc? dst)) (dw (+ #b0100100011000000 (68kreg-mode+num dst)) (68kreg-extra-words dst) (68kreglist-mask-posinc rlist))]
+   [`(movem.w ,(? 68kreglist? rlist) ,(? 68kareg.predec? dst)) (dw (+ #b0100100010000000 (68kreg-mode+num dst)) (68kreg-extra-words dst) (68kreglist-mask-predec rlist))]
+   [`(movem.l ,(? 68kreglist? rlist) ,(? 68kareg.predec? dst)) (dw (+ #b0100100011000000 (68kreg-mode+num dst)) (68kreg-extra-words dst) (68kreglist-mask-predec rlist))]
+   
+   [`(movem.w ,(? 68kareg.posinc? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110010000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-posinc rlist))]
+   [`(movem.l ,(? 68kareg.posinc? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110011000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-posinc rlist))]
+   [`(movem.w ,(? 68kareg.predec? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110010000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-predec rlist))]
+   [`(movem.l ,(? 68kareg.predec? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110011000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-predec rlist))]
+   
+   [`(lea ,(? 68kreg? src) ,(? 68kareg? dst)) (dw (+ #b0100000111000000 (68kreg-mode+num src) (68kareg-num2 dst)) (68kreg-extra-words src))]
+   
+   
    ))
    

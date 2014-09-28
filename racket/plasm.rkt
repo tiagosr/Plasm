@@ -33,7 +33,7 @@
 (define (get-label label)
   (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (%label-pos (get-label label)))))))
 
-(define-values (+a -a /a *a %or %and %xor)
+(define-values (+a -a /a *a %or %and %xor %nand)
   (letrec
       ((mkop (lambda (op)
                (letrec ((p-op
@@ -59,6 +59,7 @@
             (lambda args (foldl (mkop bitwise-ior) (car args) (cdr args)))
             (lambda args (foldl (mkop bitwise-and) (car args) (cdr args)))
             (lambda args (foldl (mkop bitwise-xor) (car args) (cdr args)))
+            (lambda args (foldl (mkop (lambda (a b) (bitwise-not (bitwise-and a b)))) (car args) (cdr args)))
             )))
 
 (define-values (%not %abs)
@@ -201,6 +202,11 @@
   (set! @ n))
 (define (->@ n)
   (-a n @))
+
+(define (aligned-w? val)
+  (%= 0 (%and 1 val)))
+(define (aligned-l? val)
+  (%= 0 (%and 3 val)))
 
 (define (asm-b n val)
   (%and 255 (<< val (*a 8 n))))
@@ -430,13 +436,16 @@
     (values assembled)))
 
 
-
 (provide (all-defined-out)
          (rename-out [+a +]
                      [-a -]
                      [*a *]
                      [/a /]
-                     [%not !]
+                     [%or ||]
+                     [%and &]
+                     [%xor ^]
+                     [%not ~]
+                     [%nand ~&]
                      [%< <]
                      [%> >]
                      [%= =]
