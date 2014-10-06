@@ -358,16 +358,17 @@
 
 (define (label? sym)
   (if (symbol? sym)
-      (if (eq? (last (string->list (symbol->string sym))) #\:)
-          #t #f)
+      #t
       #f))
-(define (unlabelize sym)
+(define (label-uncolon sym)
   (let ([str (symbol->string sym)])
-    (string->symbol (substring str 0 (- (string-length str) 1)))))
+    (if (eq? (last (string->list (symbol->string sym))) #\:)
+        (string->symbol (substring str 0 (- (string-length str) 1)))
+        str)))
 
 (define (look-for-labels code)
   (filter symbol? (map (match-lambda
-         [(? label? l) (unlabelize l)]
+         [(? label? l) (label-uncolon l)]
          [`(set-label ,(? symbol? s)) s]
          [_ #f]) code)))
 
@@ -393,7 +394,7 @@
     
 (define (label-code code labels)
   (map (match-lambda
-         [(? label? lbl) `(set-label ',(unlabelize lbl))]
+         [(? label? lbl) `(set-label ',(label-uncolon lbl))]
          [rest `,rest]) (label-code-inside-list code labels)))
 
 (define (asm-keyword thing ops)
