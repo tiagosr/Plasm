@@ -260,18 +260,6 @@
     [`(bbs6 ,(? 65imm? zp) ,(? 65rel? disp)) (db #xef zp (->@ disp))] 
     [`(bbs7 ,(? 65imm? zp) ,(? 65rel? disp)) (db #xff zp (->@ disp))] 
     
-    [rest (65c02 rest)]))
-
-(define huc6280
-  (match-lambda
-    
-    [`(csh) (db #xd4)]
-    [`(csl) (db #x54)]
-    
-    [`(st0 ,(? 65imm? imm)) (db #x03 imm)]
-    [`(st1 ,(? 65imm? imm)) (db #x13 imm)]
-    [`(st2 ,(? 65imm? imm)) (db #x23 imm)]
-    
     [`(rmb0 ,(? 65imm? zp)) (db #x07 zp)]
     [`(rmb1 ,(? 65imm? zp)) (db #x17 zp)]
     [`(rmb2 ,(? 65imm? zp)) (db #x27 zp)]
@@ -289,6 +277,18 @@
     [`(smb5 ,(? 65imm? zp)) (db #xd7 zp)]
     [`(smb6 ,(? 65imm? zp)) (db #xe7 zp)]
     [`(smb7 ,(? 65imm? zp)) (db #xf7 zp)]
+
+    [rest (65c02 rest)]))
+
+(define huc6280
+  (match-lambda
+    
+    [`(csh) (db #xd4)]
+    [`(csl) (db #x54)]
+    
+    [`(st0 ,(? 65imm? imm)) (db #x03 imm)]
+    [`(st1 ,(? 65imm? imm)) (db #x13 imm)]
+    [`(st2 ,(? 65imm? imm)) (db #x23 imm)]
     
     [`(clx) (db #x82)]
     [`(cly) (db #xc2)]
