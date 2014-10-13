@@ -240,7 +240,7 @@
 
     [rest (6502-base rest)]))
 
-(define r65c02
+(define 65sc02
   (match-lambda
     [`(bbr0 ,(? 65imm? zp) ,(? 65rel? disp)) (db #x0f zp (->@ disp))] 
     [`(bbr1 ,(? 65imm? zp) ,(? 65rel? disp)) (db #x1f zp (->@ disp))] 
@@ -338,8 +338,9 @@
     
     
     
-    [rest (r65c02 rest)]))
+    [rest (65sc02 rest)]))
 
 (make-architecture '6502 #f 6502-base)
 (make-architecture '65c02 #f 65c02)
+(make-architecture '65sc02 #f 65sc02)
 (make-architecture 'huc6280 #f huc6280)
