@@ -428,9 +428,9 @@
    [`(movem.w ,(? 68kareg.predec? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110010000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-predec rlist))]
    [`(movem.l ,(? 68kareg.predec? src) ,(? 68kreglist? rlist)) (dw (+ #b0100110011000000 (68kreg-mode+num src)) (68kreg-extra-words src) (68kreglist-mask-predec rlist))]
    
-   [`(lea ,(? 68kreg? src) ,(? 68kareg? dst)) (dw (+ #b0100000111000000 (68kreg-mode+num dst) (68kareg-num2 src)) (68kreg-extra-words dst))]
+   [`(lea ,(? 68kreg? ea) ,(? 68kareg? an)) (dw (+ #b0100000111000000 (68kreg-mode+num ea) (68kareg-num2 an)) (68kreg-extra-words ea))]
    
-   [`(chk ,(? 68kreg? src) ,(? 68kdreg? dst)) (dw (+ #b0100000110000000 (68kreg-mode+num dst) (68kdreg-num2 src)) (68kreg-extra-words dst))]
+   [`(chk ,(? 68kreg? ea) ,(? 68kdreg? dn)) (dw (+ #b0100000110000000 (68kreg-mode+num ea) (68kdreg-num2 dn)) (68kreg-extra-words ea))]
    
    [`(addq.b ,(? 68kreg? dst) ,(? (lambda (b) (between? 0 b 7)) n)) (dw (+ #b0101000000000000 (<< n 9) (68kreg-mode+num dst)) (68kreg-extra-words dst))]
    [`(addq.w ,(? 68kreg? dst) ,(? (lambda (b) (between? 0 b 7)) n)) (dw (+ #b0101000001000000 (<< n 9) (68kreg-mode+num dst)) (68kreg-extra-words dst))]
