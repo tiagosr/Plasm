@@ -2,17 +2,18 @@
 
 (require "plasm.rkt")
 
-(define (68kimm.b? n)   (between? -128 n 255))
-(define (68kimm.w? n)   (between? -32768 n 65535))
-(define (68kimm.l? n)   (between? (- #x80000000) n #xffffffff))
-(define (68kdisp.s? n)  (between? -128 n 127))
-(define (68kdisp.w? n)  (between? -32768 n 32767))
-(define (68krel.s? n)   (and (!= 2 n) (between? -128 (->@ (+ 2 n)) 127)))
-(define (68krel.w? n)   (between? -32768 (->@ (+ 4 n)) 32767))
-(define (68krel.l? n)   (between? (- #x80000000) (->@ (+ 6 n)) #x7fffffff))
-(define (68kaddr.w? n)  (between? 0 n 65535))
-(define (68kaddr.l? n)  (between? 0 n #xffffffff))
+(define (68kimm.b? n)    (between? -128 n 255))
+(define (68kimm.w? n)    (between? -32768 n 65535))
+(define (68kimm.l? n)    (between? (- #x80000000) n #xffffffff))
+(define (68kdisp.s? n)   (between? -128 n 127))
+(define (68kdisp.w? n)   (between? -32768 n 32767))
+(define (68krel.s? n)    (and (!= 2 n) (between? -128 (->@ (+ 2 n)) 127)))
+(define (68krel.w? n)    (between? -32768 (->@ (+ 4 n)) 32767))
+(define (68krel.l? n)    (between? (- #x80000000) (->@ (+ 6 n)) #x7fffffff))
+(define (68kaddr.w? n)   (between? 0 n 65535))
+(define (68kaddr.l? n)   (between? 0 n #xffffffff))
 (define (68kbitindex? n) (between? 0 n 31))
+(define (68krot? n)      (between? 0 n 7))
 
 (define (68krel.s n) (& 255 (->@ (+ 2 n))))
 (define (68krel.w n) (->@ (+ 4 n)))
@@ -482,5 +483,88 @@
    [`(add.w ,(? 68kdreg? dn) ,(? 68kreg? ea)) (dw (+ #b1101000101000000 (68kreg-mode+num ea) (68kdreg-num2 dn)) (68kreg-extra-words ea))]
    [`(add.l ,(? 68kreg? ea) ,(? 68kdreg? dn)) (dw (+ #b1101000010000000 (68kreg-mode+num ea) (68kdreg-num2 dn)) (68kreg-extra-words ea))]
    [`(add.l ,(? 68kdreg? dn) ,(? 68kreg? ea)) (dw (+ #b1101000110000000 (68kreg-mode+num ea) (68kdreg-num2 dn)) (68kreg-extra-words ea))]
+   
+   [`(addx.b ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1101000100000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(addx.w ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1101000101000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(addx.l ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1101000110000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(addx.b (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1101000100000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   [`(addx.w (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1101000101000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   [`(addx.l (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1101000110000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   
+   [`(subx.b ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1001000100000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(subx.w ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1001000101000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(subx.l ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1001000110000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(subx.b (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1001000100000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   [`(subx.w (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1001000101000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   [`(subx.l (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1001000110000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   
+   [`(abcd.b ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1100000100000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(abcd.b (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1100000100000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   
+   [`(sbcd.b ,(? 68kdreg? dx) ,(? 68kdreg? dy))         (dw (+ #b1000000100000000 (68kreg-mode+num dy) (68kdreg-num2 dx)))]
+   [`(sbcd.b (- ,(? 68kareg? ax)) (- ,(? 68kareg? ay))) (dw (+ #b1000000100000000 (68kreg-mode+num ay) (68kareg-num2 ax)))] ; mode bit set by 68kreg-mode+num
+   
+   [`(cmpm.b ,(? 68kareg? ax) ,(? 68kareg? ay)) (dw (+ #b1011000100000000 (68kreg-mode+num ay) (68kareg-num2 ax)))]
+   [`(cmpm.w ,(? 68kareg? ax) ,(? 68kareg? ay)) (dw (+ #b1011000101000000 (68kreg-mode+num ay) (68kareg-num2 ax)))]
+   [`(cmpm.l ,(? 68kareg? ax) ,(? 68kareg? ay)) (dw (+ #b1011000110000000 (68kreg-mode+num ay) (68kareg-num2 ax)))]
+   
+   [`(asl ,(? 68kreg? ea))  (dw (+ #b1110000011000000 (68kreg-mode+num ea)))]
+   [`(asr ,(? 68kreg? ea))  (dw (+ #b1110000111000000 (68kreg-mode+num ea)))]
+   [`(lsl ,(? 68kreg? ea))  (dw (+ #b1110001011000000 (68kreg-mode+num ea)))]
+   [`(lsr ,(? 68kreg? ea))  (dw (+ #b1110001111000000 (68kreg-mode+num ea)))]
+   [`(roxl ,(? 68kreg? ea)) (dw (+ #b1110010011000000 (68kreg-mode+num ea)))]
+   [`(roxr ,(? 68kreg? ea)) (dw (+ #b1110010111000000 (68kreg-mode+num ea)))]
+   [`(rol ,(? 68kreg? ea))  (dw (+ #b1110011011000000 (68kreg-mode+num ea)))]
+   [`(ror ,(? 68kreg? ea))  (dw (+ #b1110011111000000 (68kreg-mode+num ea)))]
+
+   [`(asl.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000000000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(asl.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000001000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(asl.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000010000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(asr.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000100000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(asr.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000101000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(asr.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000110000000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsl.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000000001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsl.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000001001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsl.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000010001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsr.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000100001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsr.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000101001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(lsr.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000110001000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxl.b ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000000010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxl.w ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000001010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxl.l ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000010010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxr.b ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000100010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxr.w ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000101010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(roxr.l ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000110010000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(rol.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000000011000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(rol.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000001011000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(rol.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000010011000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(ror.b  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000100011000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(ror.w  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000101011000 (<< 9 r) (68kreg-mode+num d)))]
+   [`(ror.l  ,(? 68krot? r) ,(? 68kdreg? d))  (dw (+ #b1110000110011000 (<< 9 r) (68kreg-mode+num d)))]
+
+   [`(asl.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000000100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(asl.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000001100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(asl.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000010100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(asr.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000100100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(asr.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000101100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(asr.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000110100000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsl.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000000101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsl.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000001101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsl.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000010101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsr.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000100101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsr.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000101101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(lsr.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000110101000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxl.b ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000000110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxl.w ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000001110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxl.l ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000010110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxr.b ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000100110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxr.w ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000101110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(roxr.l ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000110110000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(rol.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000000111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(rol.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000001111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(rol.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000010111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(ror.b  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000100111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(ror.w  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000101111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
+   [`(ror.l  ,(? 68kdreg? r) ,(? 68kdreg? d))  (dw (+ #b1110000110111000 (68kdreg-num2 r) (68kreg-mode+num d)))]
    ))
    
