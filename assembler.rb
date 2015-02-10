@@ -83,7 +83,7 @@ module Assembler
       rule(:dec_number) { match("[0-9]").repeat(1).as(:dec) }
       rule(:hex_number) { (str("0x")|str("0X")|str("$")) >> match("[0-9A-Fa-f]").repeat(1).as(:hex) }
       rule(:bin_number) { match("[01]").repeat(1).as(:bin) >> match("[bB]") }
-      rule(:expression) { ( str("(") >> expression >> str(")")) | label_id | bin_number | hex_number | dec_number | multiplication | addition }
+      rule(:expression) { ( str("(") >> expression >> str(")")) | label_id | bin_number | hex_number | dec_number | binary_and | binary_or | binary_xor | multiplication | addition }
       rule(:binary_or) { expression.as(:a) >> spaces? >> str("|").as(:op) >> spaces? >> expression.as(:b) >> spaces? }
       rule(:binary_and) { expression.as(:a) >> spaces? >> str("&").as(:op) >> spaces? >> expression.as(:b) >> spaces? }
       rule(:binary_xor) { expression.as(:a) >> spaces? >> str("^").as(:op) >> spaces? >> expression.as(:b) >> spaces? }

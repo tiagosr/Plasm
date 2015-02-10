@@ -5,27 +5,35 @@
    pos)
   #:transparent)
 
+; current location
 (define @ 0)
+; labels in current section
 (define @-labels
   (make-hasheq))
+; label structure
 (struct %label-promise
   (depends
    calculate)
   #:transparent)
 
+; section structure
 (struct %section
   (name
    start
    labels)
   #:transparent)
+; sections list/dict
 (define %sections (make-hash))
+; list of checks to be performed before final linking (to ensure labels are correctly generated)
 (define %consistency-checks (list))
 (define (%add-consistency-check check)
   (set! %consistency-checks (append %consistency-checks (list check))))
+; consistency check
 (define (%check-consistency)
   (andmap (lambda (item)
             ((%label-promise-calculate item)))
           %consistency-checks))
+
 
 (define %current-section (%section '<top> 0 (make-hash)))
 (define (set-label label)
@@ -33,6 +41,7 @@
 (define (get-label label)
   (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (%label-pos (get-label label)))))))
 
+; binary operators
 (define-values (+a -a /a *a %or %and %xor %nand)
   (letrec
       ((mkop (lambda (op)
@@ -62,6 +71,7 @@
             (lambda args (foldl (mkop (lambda (a b) (bitwise-not (bitwise-and a b)))) (car args) (cdr args)))
             )))
 
+; unary operators
 (define-values (%not %abs)
   (let ([mkop (lambda (op)
                 (match-lambda
@@ -72,6 +82,7 @@
     (values (mkop bitwise-not)
             (mkop abs))))
 
+; binary operators (including rotation operators of different sizes)
 (define-values (<< >>
                 mod
                 ><<-n ><<-b ><<-w ><<-d ><<-q
@@ -109,6 +120,7 @@
             (mkop (mkrot 64 #xffffffffffffffff %>>))
             )))
 
+; comparation operators
 (define-values (%< %> %= %<= %>= !=)
   (let ((mkop (lambda (op)
                    (match-lambda*
@@ -136,6 +148,7 @@
             (mkop <=)
             (mkop >=)
             (mkop (lambda (a b) (not (= a b)))))))
+
 (define between?
   (match-lambda*
     [(list (? number? a) (? number? b) (? number? c))          (and (<= a b) (<= b c))]
@@ -196,28 +209,39 @@
     [(list (? %label-promise? a) (? %label-promise? b) (? %label-promise? c)) (%label-promise (append (%label-promise-depends a) (%label-promise-depends b) (%label-promise-depends c))
                                                                                               (lambda () (between ((%label-promise-calculate a)) ((%label-promise-calculate b)) ((%label-promise-calculate c)))))]
     ))
+
+; add offset into current position
 (define (@+ n)
   (set! @ (+a @ n)))
+; set current position
 (define (@= n)
   (set! @ n))
+; get offset from current position
 (define (->@ n)
   (-a n @))
 
+; see if value is aligned as word (16b)
 (define (aligned-w? val)
   (%= 0 (%and 1 val)))
+; see if value is aligned as a long (32b)
 (define (aligned-l? val)
   (%= 0 (%and 3 val)))
 
+; get a single byte-sized chunk of a number
 (define (asm-b n val)
   (%and 255 (<< val (*a 8 n))))
+; get a single word-sized chunk of a number
 (define (asm-w n val)
   (%and #xffff (<< val (*a 16 n))))
+; get a single long-sized chunk of a number
 (define (asm-d n val)
   (%and #xffffffff (<< val (*a 32 n))))
-(define big-endian #f)
 
+; current bytes list
 (define %bytes (list))
+; define endianess of current assembly
 (define %big-endian% #f)
+; list of label promises to consolidate on linkage
 (define %promises (list))
 
 (define (asm-write-byte b)
@@ -364,7 +388,7 @@
   (let ([str (symbol->string sym)])
     (if (eq? (last (string->list (symbol->string sym))) #\:)
         (string->symbol (substring str 0 (- (string-length str) 1)))
-        str)))
+        sym)))
 
 (define (look-for-labels code)
   (filter symbol? (map (match-lambda
