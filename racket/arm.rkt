@@ -47,7 +47,7 @@
 (define (arm-reg-4-7 reg)
   (<< (arm-reg-num reg) 4))
 
-(define arm-op-condition
+(define arm-op-cond
   (match-lambda
     ['eq #x00000000]
     ['ne #x10000000]
@@ -66,20 +66,29 @@
     ['gt #xd0000000]
     ['al #xe0000000]))
 
+(define (arm-cond? cond)
+  (member ['eq 'ne 'cs 'hs 'cc 'lo 'mi 'pl
+               'vs 'vc 'ls 'ge 'lt 'gt 'al]))
+
 (define (arm-op-strip-conds op)
   (letrec ([str (symbol->string op)]
            [spstr (string-split str ".")]
            [opstr (first spstr)])
-    (string->symbol opstr)))
+    (if (arm-cond? (second spstr))
+        (string->symbol opstr)
+        #f)))
 
 (define (arm-op-dataproc? op)
   (member (arm-op-strip-conds op)
     ['adc 'add 'and 'bic 'cmn 'cmp 'eor 'mov
      'mvn 'orr 'rsb 'rsc 'sbc 'sub 'teq 'tst]))
+(define (arm-op-branch? op)
+  (member (arm-op-strip-conds op)
+          ['b]))
 
-(define arm-op?
-  (match-lambda
-    ))
+(define (arm-op? op)
+  (or (arm-op-dataproc? op)
+      ))
 
 ;(make-architecture
 ; 'armv5le #f
