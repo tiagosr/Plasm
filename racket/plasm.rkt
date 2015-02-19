@@ -460,6 +460,9 @@
     (set! %current-architecture% %old-arch%)
     (values assembled)))
 
+(define (in-list? item l)
+  (sequence-ormap (lambda (x)
+                    (equal? item x)) l))
 
 (provide (all-defined-out)
          (rename-out [+a +]

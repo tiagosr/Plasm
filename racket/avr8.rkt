@@ -3,13 +3,14 @@
 (require "plasm.rkt")
 
 (define (avr-reg-lo? r)
-  (member '(r0 r1 r2 r3 r4 r5 r6 r7
-            r8 r9 r10 r11 r12 r13 r14 r15) r))
+  (in-list? r '(r0 r1 r2 r3 r4 r5 r6 r7
+                r8 r9 r10 r11 r12 r13 r14 r15)))
 (define (avr-reg-hi? r)
-  (member '(r16 r17 r18 r19 r20 r21 r22 r23
-            r24 r25 r26 r27 r28 r29 r30 r31) r))
+  (in-list? r '(r16 r17 r18 r19 r20 r21 r22 r23
+                r24 r25 r26 r27 r28 r29 r30 r31)))
 (define (avr-reg-pair-24-30? r)
-  (member '(r25:r24 r27:r26 r29:r28 r31:r30) r))
+  (in-list? r '(r25:r24 r27:r26 r29:r28 r31:r30)))
+
 (define (avr-reg? r)
   (or (avr-reg-lo? r) (avr-reg-hi? r)))
 

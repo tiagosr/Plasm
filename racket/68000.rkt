@@ -21,17 +21,17 @@
                         (values (asm-w 1 l) (asm-w 0 l))))
 
 (define (68kreg.s? reg)
-  (member reg '(d0.w d1.w d2.w d3.w d4.w d5.w d6.w d7.w
+  (in-list? reg '(d0.w d1.w d2.w d3.w d4.w d5.w d6.w d7.w
                 d0.l d1.l d2.l d3.l d4.l d5.l d6.l d7.l
                 a0.w a1.w a2.w a3.w a4.w a5.w a6.w a7.w sp.w
                 a0.l a1.l a2.l a3.l a4.l a5.l a6.l a7.l sp.l)))
 (define (68kdreg? reg)
-  (member reg '(d0 d1 d2 d3 d4 d5 d6 d7)))
+  (in-list? reg '(d0 d1 d2 d3 d4 d5 d6 d7)))
 (define (68kareg? reg)
-  (member reg '(a0 a1 a2 a3 a4 a5 a6 a7 sp)))
+  (in-list? reg '(a0 a1 a2 a3 a4 a5 a6 a7 sp)))
 
 (define (68kareg.posinc? reg)
-  (member reg '((a0+)
+  (in-list? reg '((a0+)
                 (a1+)
                 (a2+)
                 (a3+)
@@ -41,7 +41,7 @@
                 (a7+)
                 (sp+))))
 (define (68kareg.predec? reg)
-  (member reg '((-a0)
+  (in-list? reg '((-a0)
                 (-a1)
                 (-a2)
                 (-a3)
