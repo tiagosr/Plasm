@@ -104,9 +104,9 @@
            [mod (mkop modulo)]
            [mkrot (lambda (size mask op)
                     (lambda (a b)
-                      (let ([~a (%and mask a)]
+                      (let ([masked-a (%and mask a)]
                             [r (mod b size)])
-                        (%and mask (%or (op ~a r) (op ~a (+a (-a size) r)))))))])
+                        (%and mask (%or (op masked-a r) (op masked-a (-a r size)))))))])
     (values %<< %>> mod
             (mkop (mkrot 4 #xf %<<))
             (mkop (mkrot 8 #xff %<<))
