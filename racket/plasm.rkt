@@ -22,12 +22,16 @@
    start
    labels)
   #:transparent)
+
 ; sections list/dict
 (define %sections (make-hash))
-; list of checks to be performed before final linking (to ensure labels are correctly generated)
+
+; list of checks to be performed before final linking
+; (to ensure labels are correctly generated)
 (define %consistency-checks (list))
 (define (%add-consistency-check check)
   (set! %consistency-checks (append %consistency-checks (list check))))
+
 ; consistency check
 (define (%check-consistency)
   (andmap (lambda (item)
@@ -120,7 +124,7 @@
             (mkop (mkrot 64 #xffffffffffffffff %>>))
             )))
 
-; comparation operators
+; comparison operators
 (define-values (%< %> %= %<= %>= !=)
   (let ((mkop (lambda (op)
                    (match-lambda*

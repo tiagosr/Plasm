@@ -69,6 +69,27 @@
        (if (= (|| x-rev-rot 255) 255)
            x-rev-rot
            #f))))
+(define arm-op2-reg-shift-types
+  #hash(
+        [lsl . 0]
+        [lsr . #x20]
+        [asr . #x40]
+        [ror . #x60]))
+(define (arm-op2-shift-type? type)
+  (hash-has-key? arm-op2-reg-shift-types type))
+(define (arm-op2-shift? type r)
+  (& (|| (hash-has-key? arm-regs r)
+         (between? 0 r 31))
+     (hash-has-key? arm-op2-reg-shift-types type)))
+(define (arm-op2-shift-reg rm type rs)
+  (+ (<< (hash-ref arm-regs rs) 8)
+     (hash-ref arm-op2-reg-shift-types type)
+     (hash-ref arm-regs rm)))
+(define (arm-op2-shift-amount rm type amount)
+  (+ (<< amount 7)
+     (hash-ref arm-op2-reg-shift-types type)
+     #x10
+     (hash-ref arm-regs rm)))
 
 (define (arm-op2-immediate val)
   (|| #x04000000 (<< (arm-op2-rotate-count val) 8) (arm-op2-rotate-val val)))
@@ -117,11 +138,7 @@
             (hash-ref arm-conds 'al))
         (hash-ref arm-conds 'al))))
 
-(define arm-shifter-ops
-  #hash(
-        [lsl . 0]
-        
-        ))
+
         
 
 (define arm-ops-dataproc
@@ -178,14 +195,21 @@
 (define (arm-op-branch? op)
   (hash-has-key? arm-ops-branch (arm-op-strip-conds op)))
 (define (arm-op-branch op offset)
-  (+ (hash-ref arm-ops-branch (arm-op-strip-conds op)) (arm-cond-val op) (& (>> offset 2) #xffffff)))
+  (+ (hash-ref arm-ops-branch (arm-op-strip-conds op))
+     (arm-cond-val op)
+     (& (>> offset 2)
+        #xffffff)))
 
 
 
 (define armv5-op-map
   (match-lambda
     [`(,(? arm-op-dataproc? op) ,(? arm-reg? dest) ,(? arm-reg? src1) ,(? arm-reg? src2))
-     (dd (+ (arm-cond-val op) (arm-op-dataproc op) (arm-reg-16-19 src1) (arm-reg-12-15 dest) (arm-reg-4-7 src2)))]
+     (dd (+ (arm-cond-val op)
+            (arm-op-dataproc op)
+            (arm-reg-16-19 src1)
+            (arm-reg-12-15 dest)
+            (arm-reg-4-7 src2)))]
     [`(,(? arm-op-branch? op) ,(? arm-offset-rel? offset))
      (dd (arm-op-branch op offset))]
     ))
