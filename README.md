@@ -1,26 +1,27 @@
 Plasm - Playful Assembler
 =========================
 
-Plasm is a Ruby library/DSL that enables direct generation of assembly code for a number of different processors and architectures, with all the power of Ruby available for helping you generate code for a given target. It is targeted mainly at old 8/16 bit processors and microcontrollers, who aren't offered much help in the way of C/C++ compilers due to limitations in their architectures and such, like the MOS 6502 and Zilog Z80.
+Plasm is a Racket library/DSL that enables direct generation of assembly code for a number of different processors and architectures, with all the power of Ruby available for helping you generate code for a given target. It is targeted mainly at old 8/16 bit processors and microcontrollers, who aren't offered much help in the way of C/C++ compilers due to limitations in their architectures and such, like the MOS 6502 and Zilog Z80.
 
 ## Simple usage example (Z80)
 
-```ruby
-require "z80"
-project = Assembly.Z80.new
-project.asm do
-	jp :Start			# label reference
-	org 0x100			# set origin
-	
-	__ :Start			# label definition
-	ld A, [:SomeData] 	# load with a label reference
-	out 0x80, A			#
-	halt				#
+```racket
+(require "plasm.rkt")
+(require "z80.rkt")
 
-	__ :SomeData		# label definition
-	db 0x10				# data declaration
-end
-project.link.write_out("project.z80.bin")
+(asm-with-arch 'z80
+	'(
+		(jp 'Start)
+		(org #x100)
+
+		'Start
+		(ld a 'SomeData)
+		(out #x80 a)
+		(halt)
+
+		'SomeData
+		(db #x10)
+	 ))
 ```
 
 ## License (MIT)
