@@ -374,6 +374,9 @@
    [`(ble.s ,(? 68krel.s? disp))                (dw (+ #b0110111100000000 (68krel.s disp)))]
    [`(ble.w ,(? 68krel.w? disp))                 (dw    #b0110111100000000 (68krel.w disp))]
    [`(ble.l ,(? 68krel.l? disp))                 (dw    #b0110111111111111 (68krel.l disp))]
+   
+   [`(jsr ,(? 68kea? reg))                 (dw (+ #b0100111010000000 (68kea-mode+num reg)) (68kea-extra-words reg))]
+   [`(jmp ,(? 68kea? reg))                 (dw (+ #b0100111011000000 (68kea-mode+num reg)) (68kea-extra-words reg))]
 
    [`(st  ,(? 68kea? reg))                 (dw (+ #b0101000011000000 (68kea-mode+num reg)) (68kea-extra-words reg))]
    [`(sf  ,(? 68kea? reg))                 (dw (+ #b0101000111000000 (68kea-mode+num reg)) (68kea-extra-words reg))]
