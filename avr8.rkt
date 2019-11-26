@@ -16,34 +16,34 @@
 
 (define (avr-reg-s r)
   (list-ref 
-   (assoc '([r0 #x0]  [r1 #x1]  [r2 #x2]  [r3 #x3]
+   (assoc r '([r0 #x0]  [r1 #x1]  [r2 #x2]  [r3 #x3]
             [r4 #x4]  [r5 #x5]  [r6 #x6]  [r7 #x7]
             [r8 #x8]  [r9 #x9]  [r10 #xa] [r11 #xb]
             [r12 #xc] [r13 #xd] [r14 #xe] [r15 #xf]
             [r16 #x200] [r17 #x201] [r18 #x202] [r19 #x203]
             [r20 #x204] [r21 #x205] [r22 #x206] [r23 #x207]
             [r24 #x208] [r25 #x209] [r26 #x20a] [r27 #x20b]
-            [r28 #x20c] [r29 #x20d] [r30 #x20e] [r31 #x20f]) r) 1))
+            [r28 #x20c] [r29 #x20d] [r30 #x20e] [r31 #x20f])) 1))
 (define (avr-reg-d r)
   (list-ref
-   (assoc '([r0 #x00]  [r1 #x10]  [r2 #x20]  [r3 #x30]
+   (assoc r '([r0 #x00]  [r1 #x10]  [r2 #x20]  [r3 #x30]
             [r4 #x40]  [r5 #x50]  [r6 #x60]  [r7 #x70]
             [r8 #x80]  [r9 #x90]  [r10 #xa0] [r11 #xb0]
             [r12 #xc0] [r13 #xd0] [r14 #xe0] [r15 #xf0]
             [r16 #x100] [r17 #x110] [r18 #x120] [r19 #x130]
             [r20 #x140] [r21 #x150] [r22 #x160] [r23 #x170]
             [r24 #x180] [r25 #x190] [r26 #x1a0] [r27 #x1b0]
-            [r28 #x1c0] [r29 #x1d0] [r30 #x1e0] [r31 #x1f0]) r) 1))
+            [r28 #x1c0] [r29 #x1d0] [r30 #x1e0] [r31 #x1f0])) 1))
 
 (define (avr-reg-hi-d r)
   (list-ref
-   (assoc '([r16 #x00] [r17 #x10] [r18 #x20] [r19 #x30]
+   (assoc r '([r16 #x00] [r17 #x10] [r18 #x20] [r19 #x30]
             [r20 #x40] [r21 #x50] [r22 #x60] [r23 #x70]
             [r24 #x80] [r25 #x90] [r26 #xa0] [r27 #xb0]
-            [r28 #xc0] [r29 #xd0] [r30 #xe0] [r31 #xf0]) r) 1))
+            [r28 #xc0] [r29 #xd0] [r30 #xe0] [r31 #xf0])) 1))
 (define (avr-reg-pair-24-30 r)
   (list-ref
-   (assoc '([r25:r24 0] [r27:r26 1] [r29:r28 2] [r31:r30 3]) r) 1))
+   (assoc r '([r25:r24 0] [r27:r26 1] [r29:r28 2] [r31:r30 3])) 1))
 
 (define (avr-imm-6b? i) (between? 0 i 63))
 (define (avr-imm-6b i) (+ (& #x0f i) (<< (& #x30 i) 2)))
