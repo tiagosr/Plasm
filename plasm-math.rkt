@@ -10,7 +10,7 @@
   (set! %consistency-check-vars (append %consistency-check-vars (list var))))
 
 ; binary operators
-(define-values (+a -a /a *a %or %and %xor %nand)
+(define-values (+a -a *a /a %or %and %xor %nand)
   (letrec
       ((mkop (lambda (op)
                (letrec ((p-op
@@ -83,7 +83,7 @@
                                        (lambda () (op ((number-promise%-calculate a))
                                                       ((number-promise%-calculate b)))))]))]
            [%<< (mkop arithmetic-shift)]
-           [%>> (mkop (lambda (a b) (arithmetic-shift (-a a) b)))]
+           [%>> (mkop (lambda (a b) (arithmetic-shift a -b)))]
            [mod (mkop modulo)]
            [mkrot (lambda (size mask op)
                     (lambda (a b)
