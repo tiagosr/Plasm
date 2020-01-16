@@ -212,6 +212,8 @@
             (arm-reg-4-7 src2)))]
     [`(,(? arm-op-branch? op) ,(? arm-offset-rel? offset))
      (dd (arm-op-branch op offset))]
+
+    [rest (%asm-base rest)]
     ))
 
 (make-architecture 'armv5le #f armv5-op-map)

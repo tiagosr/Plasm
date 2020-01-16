@@ -231,7 +231,6 @@
     [(? 68kdreg? d) (68kdreg-num2 d)]
     [(? 68kareg? a) (+ #b001000000 (68kareg-num2 a))]
     [`(,(? 68kimm.l? disp) ,(? 68kareg? a))                   (+ (68kea-mode+num2 a) #b100000000)]
-    [`(,(? 68kimm.l? disp) ,(? 68kareg? a))                   (+ (68kea-mode+num2 a) #b100000000)]
     [`(,(? 68kdisp.s? disp) ,(? 68kareg? a) ,(? 68kreg.s? x)) (+ (68kea-mode+num2 a) #b101000000)]
     [`(,(? 68kdisp.w? disp) pc)                               #b010111000000]
     [`(,(? 68kdisp.s? disp) pc ,(? 68kreg.s? x))              #b011111000000]

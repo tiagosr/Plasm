@@ -103,8 +103,8 @@
                      [(list (? %label-promise? a) (? %label-promise? b))
                       (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
                                       (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b)))))]))]
-           [%<< (mkop arithmetic-shift)]
-           [%>> (mkop (lambda (a b) (arithmetic-shift (-a a) b)))]
+           [%<< (mkop (lambda (a b) (arithmetic-shift a (-a b))))]
+           [%>> (mkop arithmetic-shift)]
            [mod (mkop modulo)]
            [mkrot (lambda (size mask op)
                     (lambda (a b)
@@ -233,13 +233,13 @@
 
 ; get a single byte-sized chunk of a number
 (define (asm-b n val)
-  (%and 255 (<< val (*a 8 n))))
+  (%and 255 (>> val (*a 8 n))))
 ; get a single word-sized chunk of a number
 (define (asm-w n val)
-  (%and #xffff (<< val (*a 16 n))))
+  (%and #xffff (>> val (*a 16 n))))
 ; get a single long-sized chunk of a number
 (define (asm-d n val)
-  (%and #xffffffff (<< val (*a 32 n))))
+  (%and #xffffffff (>> val (*a 32 n))))
 
 ; current bytes list
 (define %bytes (list))
