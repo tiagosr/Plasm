@@ -46,7 +46,7 @@
   (hash-ref (%section-labels %current-section) label (lambda () (%label-promise (list label) (lambda () (%label-pos (get-label label)))))))
 
 ; binary operators
-(define-values (+a -a /a *a %or %and %xor %nand)
+(define-values (+a -a *a /a %or %and %xor %nand)
   (letrec
       ((mkop (lambda (op)
                (letrec ((p-op
