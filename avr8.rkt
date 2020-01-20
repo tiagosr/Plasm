@@ -94,6 +94,8 @@
 ; relative address is word-aligned
 (define (avr-rel-7b? i) (between? -64 (>> (+ 2 (->@ i)) 1) 63))
 (define (avr-rel-7b i) (<< (& #xfe (+ 2 (->@ i))) 2))
+(define (avr-rel-12b? i) (between? -2048 (>> (+ 2 (->@ i)) 1) 2046))
+(define (avr-rel-12b i) (bit-field (->@ i) 1 12))
 
 ; I/O locations
 (define (avr-io? io) (between? 0 io 63))
@@ -104,6 +106,11 @@
 ; SRAM locations
 (define (avr-sram? addr) (and (between? 0 addr 65535) (= 0 (& addr 1))))
 (define (avr-sram addr) (>> addr 1))
+
+; Code ROM locations
+(define (avr-crom? addr) (and (between? 0 addr 8388607) (= 0 (& addr 1))))
+(define (avr-crom-lo addr) (bit-field addr 1 16))
+(define (avr-crom-hi addr) (or (bit-field addr 16 17) (<< (bit-field addr 17 22) 4)))
 
 
 (make-architecture
@@ -238,6 +245,13 @@
    [`(sbi ,(? avr-io-lo? io) ,(? avr-bit? bit))  (dw (+ #x9a00 (avr-io-lo io) bit))]
    [`(sbic ,(? avr-io-lo? io) ,(? avr-bit? bit)) (dw (+ #x9900 (avr-io-lo io) bit))]
    [`(sbis ,(? avr-io-lo? io) ,(? avr-bit? bit)) (dw (+ #x9b00 (avr-io-lo io) bit))]
+
+   ; absolute jumps/calls
+   [`(call ,(? avr-crom? addr)) (dw (+ #x940e (avr-crom-hi addr)) (avr-crom-lo addr))]
+   [`(jmp  ,(? avr-crom? addr)) (dw (+ #x940c (avr-crom-hi addr)) (avr-crom-lo addr))]
+
+   ; relative jumps/calls
+   
    
    [rest (%asm-base rest)]
    ))

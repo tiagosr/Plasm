@@ -123,6 +123,38 @@
             (mkop (mkrot 32 #xffffffff %>>))
             (mkop (mkrot 64 #xffffffffffffffff %>>))
             )))
+; bitfield operators
+(define-values (bit-field)
+  (letrec ([mkop (lambda (op)
+                   (match-lambda*
+                     [(list (? integer? a) (? integer? b) (? integer? c)) (op a b c)]
+                     [(list (? %label-promise? a) (? integer? b) (? integer? c))
+                      (%label-promise (%label-promise-depends a)
+                                      (lambda () (op ((%label-promise-calculate a)) b c)))]
+                     [(list (? integer? a) (? %label-promise? b) (? integer? c))
+                      (%label-promise (%label-promise-depends b)
+                                      (lambda () (op a ((%label-promise-calculate b)) c)))]
+                     [(list (? %label-promise? a) (? %label-promise? b) (? integer? c))
+                      (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
+                                      (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b)) c)))]
+                     
+                     [(list (? integer? a) (? integer? b) (? %label-promise? c))
+                      (%label-promise (%label-promise-depends a)
+                                      (lambda () (op a b ((%label-promise-calculate c)))))]
+                     [(list (? %label-promise? a) (? integer? b) (? %label-promise? c))
+                      (%label-promise (append (%label-promise-depends a) (%label-promise-depends c))
+                                      (lambda () (op ((%label-promise-calculate a)) b ((%label-promise-calculate c)))))]
+                     [(list (? integer? a) (? %label-promise? b) (? %label-promise? c))
+                      (%label-promise (append (%label-promise-depends b) (%label-promise-depends c))
+                                      (lambda () (op a ((%label-promise-calculate b)) ((%label-promise-calculate c)))))]
+                     [(list (? %label-promise? a) (? %label-promise? b) (? %label-promise? c))
+                      (%label-promise (append (%label-promise-depends a) (%label-promise-depends b) (%label-promise-depends c))
+                                      (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b)) ((%label-promise-calculate c)))))]
+                     ))]
+           [bit-field (mkop bitwise-bit-field)]
+           )
+    (values bit-field
+            )))
 
 ; comparison operators
 (define-values (%< %> %= %<= %>= !=)
