@@ -103,8 +103,8 @@
                      [(list (? %label-promise? a) (? %label-promise? b))
                       (%label-promise (append (%label-promise-depends a) (%label-promise-depends b))
                                       (lambda () (op ((%label-promise-calculate a)) ((%label-promise-calculate b)))))]))]
-           [%<< (mkop (lambda (a b) (arithmetic-shift a (-a b))))]
-           [%>> (mkop arithmetic-shift)]
+           [%<< (mkop arithmetic-shift)]
+           [%>> (mkop (lambda (a b) (arithmetic-shift a (- b))))]
            [mod (mkop modulo)]
            [mkrot (lambda (size mask op)
                     (lambda (a b)
