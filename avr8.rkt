@@ -59,14 +59,14 @@
               [r31:r30 #xf0] [r29:r28 #xe0] [r27:r26 #xd0] [r25:r24 #xc0]
               [r23:r22 #xb0] [r21:r20 #xa0] [r19:r18 #x90] [r17:r16 #x80]
               [r15:r14 #x70] [r13:r12 #x60] [r11:r10 #x50] [r9:r8 #x40]
-              [r7:r6 #x30] [r5:r4 #x20] [r3:r2 #x10] [r1:r0 0]))))
+              [r7:r6 #x30] [r5:r4 #x20] [r3:r2 #x10] [r1:r0 0])) 1))
 (define (avr-reg-pair-r r)
   (list-ref
    (assoc r '([z 15] [y 14] [x 13]
               [r31:r30 15] [r29:r28 14] [r27:r26 13] [r25:r24 12]
               [r23:r22 11] [r21:r20 10] [r19:r18 9] [r17:r16 8]
               [r15:r14 7] [r13:r12 6] [r11:r10 5] [r9:r8 4]
-              [r7:r6 3] [r5:r4 2] [r3:r2 1] [r1:r0 0]))))
+              [r7:r6 3] [r5:r4 2] [r3:r2 1] [r1:r0 0])) 1))
 (define (avr-reg-pair-24-30 r)
   (list-ref
    (assoc r '([r25:r24 0] [r27:r26 1] [x 1] [r29:r28 2] [y 2] [r31:r30 3] [z 3])) 1))
@@ -76,11 +76,11 @@
 (define (avr-reg-fmul-r r)
   (list-ref
    (assoc r '([r16 0] [r17 1] [r18 2] [r19 3]
-              [r20 4] [r21 5] [r22 6] [r23 7]))))
+              [r20 4] [r21 5] [r22 6] [r23 7])) 1))
 (define (avr-reg-fmul-d r)
   (list-ref
    (assoc r '([r16 #x00] [r17 #x10] [r18 #x20] [r19 #x30]
-              [r20 #x40] [r21 #x50] [r22 #x60] [r23 #x70]))))
+              [r20 #x40] [r21 #x50] [r22 #x60] [r23 #x70])) 1))
 
 (define (avr-imm-6b? i) (between? 0 i 63))
 (define (avr-imm-6b i) (+ (& #x0f i) (<< (& #x30 i) 2)))
