@@ -20,67 +20,76 @@
 (define (avr-reg? r)
   (or (avr-reg-lo? r) (avr-reg-hi? r)))
 
-(define (avr-reg-s r)
-  (list-ref 
-   (assoc r '([r0 #x0]  [r1 #x1]  [r2 #x2]  [r3 #x3]
-            [r4 #x4]  [r5 #x5]  [r6 #x6]  [r7 #x7]
-            [r8 #x8]  [r9 #x9]  [r10 #xa] [r11 #xb]
-            [r12 #xc] [r13 #xd] [r14 #xe] [r15 #xf]
-            [r16 #x200] [r17 #x201] [r18 #x202] [r19 #x203]
-            [r20 #x204] [r21 #x205] [r22 #x206] [r23 #x207]
-            [r24 #x208] [r25 #x209] [r26 #x20a] [r27 #x20b]
-            [r28 #x20c] [r29 #x20d] [r30 #x20e] [r31 #x20f])) 1))
-(define (avr-reg-d r)
-  (list-ref
-   (assoc r '([r0 #x00]  [r1 #x10]  [r2 #x20]  [r3 #x30]
-            [r4 #x40]  [r5 #x50]  [r6 #x60]  [r7 #x70]
-            [r8 #x80]  [r9 #x90]  [r10 #xa0] [r11 #xb0]
-            [r12 #xc0] [r13 #xd0] [r14 #xe0] [r15 #xf0]
-            [r16 #x100] [r17 #x110] [r18 #x120] [r19 #x130]
-            [r20 #x140] [r21 #x150] [r22 #x160] [r23 #x170]
-            [r24 #x180] [r25 #x190] [r26 #x1a0] [r27 #x1b0]
-            [r28 #x1c0] [r29 #x1d0] [r30 #x1e0] [r31 #x1f0])) 1))
+(define avr-reg-s
+  (match-lambda
+    ['r0 #x0]    ['r1 #x1]    ['r2 #x2]    ['r3 #x3]
+    ['r4 #x4]    ['r5 #x5]    ['r6 #x6]    ['r7 #x7]
+    ['r8 #x8]    ['r9 #x9]    ['r10 #xa]   ['r11 #xb]
+    ['r12 #xc]   ['r13 #xd]   ['r14 #xe]   ['r15 #xf]
+    ['r16 #x200] ['r17 #x201] ['r18 #x202] ['r19 #x203]
+    ['r20 #x204] ['r21 #x205] ['r22 #x206] ['r23 #x207]
+    ['r24 #x208] ['r25 #x209] ['r26 #x20a] ['r27 #x20b]
+    ['r28 #x20c] ['r29 #x20d] ['r30 #x20e] ['r31 #x20f]))
 
-(define (avr-reg-hi-d r)
-  (list-ref
-   (assoc r '([r16 #x00] [r17 #x10] [r18 #x20] [r19 #x30]
-            [r20 #x40] [r21 #x50] [r22 #x60] [r23 #x70]
-            [r24 #x80] [r25 #x90] [r26 #xa0] [r27 #xb0]
-            [r28 #xc0] [r29 #xd0] [r30 #xe0] [r31 #xf0])) 1))
-(define (avr-reg-hi-r r)
-  (list-ref
-   (assoc r '([r16 #x0] [r17 #x1] [r18 #x2] [r19 #x3]
-            [r20 #x4] [r21 #x5] [r22 #x6] [r23 #x7]
-            [r24 #x8] [r25 #x9] [r26 #xa] [r27 #xb]
-            [r28 #xc] [r29 #xd] [r30 #xe] [r31 #xf])) 1))
-(define (avr-reg-pair-d r)
-  (list-ref
-   (assoc r '([z #xf0] [y #xe0] [x #xd0]
-              [r31:r30 #xf0] [r29:r28 #xe0] [r27:r26 #xd0] [r25:r24 #xc0]
-              [r23:r22 #xb0] [r21:r20 #xa0] [r19:r18 #x90] [r17:r16 #x80]
-              [r15:r14 #x70] [r13:r12 #x60] [r11:r10 #x50] [r9:r8 #x40]
-              [r7:r6 #x30] [r5:r4 #x20] [r3:r2 #x10] [r1:r0 0]))))
-(define (avr-reg-pair-r r)
-  (list-ref
-   (assoc r '([z 15] [y 14] [x 13]
-              [r31:r30 15] [r29:r28 14] [r27:r26 13] [r25:r24 12]
-              [r23:r22 11] [r21:r20 10] [r19:r18 9] [r17:r16 8]
-              [r15:r14 7] [r13:r12 6] [r11:r10 5] [r9:r8 4]
-              [r7:r6 3] [r5:r4 2] [r3:r2 1] [r1:r0 0]))))
-(define (avr-reg-pair-24-30 r)
-  (list-ref
-   (assoc r '([r25:r24 0] [r27:r26 1] [x 1] [r29:r28 2] [y 2] [r31:r30 3] [z 3])) 1))
+(define avr-reg-d
+  (match-lambda
+    ['r0 #x00]   ['r1 #x10]   ['r2 #x20]   ['r3 #x30]
+    ['r4 #x40]   ['r5 #x50]   ['r6 #x60]   ['r7 #x70]
+    ['r8 #x80]   ['r9 #x90]   ['r10 #xa0]  ['r11 #xb0]
+    ['r12 #xc0]  ['r13 #xd0]  ['r14 #xe0]  ['r15 #xf0]
+    ['r16 #x100] ['r17 #x110] ['r18 #x120] ['r19 #x130]
+    ['r20 #x140] ['r21 #x150] ['r22 #x160] ['r23 #x170]
+    ['r24 #x180] ['r25 #x190] ['r26 #x1a0] ['r27 #x1b0]
+    ['r28 #x1c0] ['r29 #x1d0] ['r30 #x1e0] ['r31 #x1f0]))
+
+(define avr-reg-hi-d
+  (match-lambda
+    ['r16 #x00] ['r17 #x10] ['r18 #x20] ['r19 #x30]
+    ['r20 #x40] ['r21 #x50] ['r22 #x60] ['r23 #x70]
+    ['r24 #x80] ['r25 #x90] ['r26 #xa0] ['r27 #xb0]
+    ['r28 #xc0] ['r29 #xd0] ['r30 #xe0] ['r31 #xf0]))
+(define avr-reg-hi-r
+  (match-lambda
+    ['r16 #x0] ['r17 #x1] ['r18 #x2] ['r19 #x3]
+    ['r20 #x4] ['r21 #x5] ['r22 #x6] ['r23 #x7]
+    ['r24 #x8] ['r25 #x9] ['r26 #xa] ['r27 #xb]
+    ['r28 #xc] ['r29 #xd] ['r30 #xe] ['r31 #xf]))
+
+(define avr-reg-pair-d
+  (match-lambda
+    ['r31:r30 #xf0] ['z #xf0]
+    ['r29:r28 #xe0] ['y #xe0]
+    ['r27:r26 #xd0] ['x #xd0]
+    ['r25:r24 #xc0]
+    ['r23:r22 #xb0] ['r21:r20 #xa0] ['r19:r18 #x90] ['r17:r16 #x80]
+    ['r15:r14 #x70] ['r13:r12 #x60] ['r11:r10 #x50] ['r9:r8 #x40]
+    ['r7:r6 #x30]   ['r5:r4 #x20]   ['r3:r2 #x10]   ['r1:r0 0]))
+(define avr-reg-pair-r
+  (match-lambda
+    ['r31:r30 15] ['z 15]
+    ['r29:r28 14] ['y 14]
+    ['r27:r26 13] ['x 13]
+    ['r25:r24 12]
+    ['r23:r22 11] ['r21:r20 10] ['r19:r18 9]  ['r17:r16 8]
+    ['r15:r14 7]  ['r13:r12 6]  ['r11:r10 5]  ['r9:r8 4]
+    ['r7:r6 3]    ['r5:r4 2]    ['r3:r2 1]    ['r1:r0 0]))
+(define avr-reg-pair-24-30
+  (match-lambda
+    ['r25:r24 0]
+    ['r27:r26 1] ['x 1]
+    ['r29:r28 2] ['y 2]
+    ['r31:r30 3] ['z 3]))
 
 (define (avr-reg-fmul? r)
   (in-list? r '(r16 r17 r18 r19 r20 r21 r22 r23)))
-(define (avr-reg-fmul-r r)
-  (list-ref
-   (assoc r '([r16 0] [r17 1] [r18 2] [r19 3]
-              [r20 4] [r21 5] [r22 6] [r23 7]))))
-(define (avr-reg-fmul-d r)
-  (list-ref
-   (assoc r '([r16 #x00] [r17 #x10] [r18 #x20] [r19 #x30]
-              [r20 #x40] [r21 #x50] [r22 #x60] [r23 #x70]))))
+(define avr-reg-fmul-r
+  (match-lambda
+    ['r16 0] ['r17 1] ['r18 2] ['r19 3]
+    ['r20 4] ['r21 5] ['r22 6] ['r23 7]))
+(define avr-reg-fmul-d
+  (match-lambda
+    ['r16 #x00] ['r17 #x10] ['r18 #x20] ['r19 #x30]
+    ['r20 #x40] ['r21 #x50] ['r22 #x60] ['r23 #x70]))
 
 (define (avr-imm-6b? i) (between? 0 i 63))
 (define (avr-imm-6b i) (+ (& #x0f i) (<< (& #x30 i) 2)))
@@ -251,7 +260,8 @@
    [`(jmp  ,(? avr-crom? addr)) (dw (+ #x940c (avr-crom-hi addr)) (avr-crom-lo addr))]
 
    ; relative jumps/calls
-   
+   [`(rcall ,(? avr-rel-12b? addr)) (dw (+ #xd000 (avr-rel-12b addr)))]
+   [`(rjmp  ,(? avr-rel-12b? addr)) (dw (+ #xc000 (avr-rel-12b addr)))]
    
    [rest (%asm-base rest)]
    ))
