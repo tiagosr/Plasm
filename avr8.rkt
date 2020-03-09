@@ -173,6 +173,7 @@
    [`(tst ,(? avr-reg? reg)) (dw (+ #x2000 (avr-reg-s reg) (avr-reg-d reg)))] ; same as (and reg reg)
    
    [`(adiw ,(? avr-reg-pair-24-30? src) ,(? avr-imm-6b? b)) (dw (+ #x9600 (avr-reg-pair-24-30 src) (avr-imm-6b b)))]
+   [`(sbiw ,(? avr-reg-pair-24-30? src) ,(? avr-imm-6b? b)) (dw (+ #x9700 (avr-reg-pair-24-30 src) (avr-imm-6b b)))]
 
    [`(movw ,(? avr-reg-pair? d) ,(? avr-reg-pair? r))       (dw (+ #x0100 (avr-reg-pair-d d) (avr-reg-pair-r r)))]
    
@@ -181,6 +182,8 @@
    [`(ori ,(? avr-reg-hi? src) ,(? avr-imm-b? b))           (dw (+ #x6000 (avr-reg-hi-d src) (avr-imm-b b)))]
    [`(andi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #x7000 (avr-reg-hi-d src) (avr-imm-b b)))]
    
+   [`(sbci ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #x4000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   
    [`(swap ,(? avr-reg? reg)) (dw (+ #x9402 (avr-reg-d reg)))]
    [`(asr ,(? avr-reg? reg))  (dw (+ #x9405 (avr-reg-d reg)))]
    [`(lsr ,(? avr-reg? reg))  (dw (+ #x9406 (avr-reg-d reg)))]
@@ -188,7 +191,7 @@
    
    [`(xch z ,(? avr-reg? reg)) (dw (+ #x9204 (avr-reg-d reg)))]
    [`(las z ,(? avr-reg? reg)) (dw (+ #x9205 (avr-reg-d reg)))]
-   [`(lac z ,(? avr-reg? reg)) (dw (+ #x9006 (avr-reg-d reg)))]
+   [`(lac z ,(? avr-reg? reg)) (dw (+ #x9206 (avr-reg-d reg)))]
    [`(lat z ,(? avr-reg? reg)) (dw (+ #x9207 (avr-reg-d reg)))]
    
    [`(pop ,(? avr-reg? reg))  (dw (+ #x900f (avr-reg-d reg)))]
@@ -200,6 +203,9 @@
    [`(bld  ,(? avr-reg? dst) ,(? avr-bit? bit))  (dw (+ #xf800 bit (avr-reg-d dst)))]
    [`(bst  ,(? avr-reg? src) ,(? avr-bit? bit))  (dw (+ #xfa00 bit (avr-reg-d src)))]
    [`(sbrc ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfc00 bit (avr-reg-d reg)))]
+   [`(sbrs ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfe00 bit (avr-reg-d reg)))]
+   [`(sbr ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #x6000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   [`(ser ,(? avr-reg-hi? src))         (dw (+ #xef0f (avr-reg-hi-d src)))]
    
    [`(brbc ,(? avr-bit? s) ,(? avr-rel-7b? dst)) (dw (+ #xf400 s (avr-rel-7b dst)))]
    [`(brbs ,(? avr-bit? s) ,(? avr-rel-7b? dst)) (dw (+ #xf000 s (avr-rel-7b dst)))]
@@ -228,6 +234,8 @@
    [`(swap ,(? avr-reg? reg)) (dw (+ #x9402 (avr-reg-d reg)))]
    [`(inc ,(? avr-reg? reg))  (dw (+ #x9403 (avr-reg-d reg)))]
    [`(dec ,(? avr-reg? reg))  (dw (+ #x940a (avr-reg-d reg)))]
+   
+   
 
    [`(muls ,(? avr-reg-hi? d) ,(? avr-reg-hi? r))       (dw (+ #x0200 (avr-reg-hi-d d) (avr-reg-hi-r r)))]
 
@@ -241,6 +249,9 @@
    [`(lpm ,(? avr-reg? reg) z)  (dw (+ #x9004 (avr-reg-d reg)))]
    [`(lpm ,(? avr-reg? reg) z+) (dw (+ #x9005 (avr-reg-d reg)))]
    [`(spm)                      (dw #x95e8)]
+   [`(spm ,(? avr-reg? reg) z+) (dw (+ #x92f8 (avr-reg-d reg)))]
+   
+   [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
    
    ; extended load program memory
    [`(elpm)                      (dw #x95d8)]
