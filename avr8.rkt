@@ -249,7 +249,6 @@
    [`(lpm ,(? avr-reg? reg) z)  (dw (+ #x9004 (avr-reg-d reg)))]
    [`(lpm ,(? avr-reg? reg) z+) (dw (+ #x9005 (avr-reg-d reg)))]
    [`(spm)                      (dw #x95e8)]
-   [`(spm ,(? avr-reg? reg) z+) (dw (+ #x92f8 (avr-reg-d reg)))]
    
    [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
    
