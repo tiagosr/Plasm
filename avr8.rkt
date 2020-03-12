@@ -236,8 +236,6 @@
    [`(swap ,(? avr-reg? reg)) (dw (+ #x9402 (avr-reg-d reg)))]
    [`(inc ,(? avr-reg? reg))  (dw (+ #x9403 (avr-reg-d reg)))]
    [`(dec ,(? avr-reg? reg))  (dw (+ #x940a (avr-reg-d reg)))]
-   
-   
 
    [`(muls ,(? avr-reg-hi? d) ,(? avr-reg-hi? r))       (dw (+ #x0200 (avr-reg-hi-d d) (avr-reg-hi-r r)))]
 
