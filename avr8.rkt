@@ -204,8 +204,10 @@
    [`(bst  ,(? avr-reg? src) ,(? avr-bit? bit))  (dw (+ #xfa00 bit (avr-reg-d src)))]
    [`(sbrc ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfc00 bit (avr-reg-d reg)))]
    [`(sbrs ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfe00 bit (avr-reg-d reg)))]
-   [`(sbr ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #x6000 (avr-reg-hi-d src) (avr-imm-b b)))]
-   [`(ser ,(? avr-reg-hi? src))         (dw (+ #xef0f (avr-reg-hi-d src)))]
+   
+   [`(sbr ,(? avr-reg-hi? src) ,(? avr-imm-b? b))  (dw (+ #x6000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   
+   [`(ser ,(? avr-reg-hi? src))  (dw (+ #xef0f (avr-reg-hi-d src)))]
    
    [`(brbc ,(? avr-bit? s) ,(? avr-rel-7b? dst)) (dw (+ #xf400 s (avr-rel-7b dst)))]
    [`(brbs ,(? avr-bit? s) ,(? avr-rel-7b? dst)) (dw (+ #xf000 s (avr-rel-7b dst)))]
@@ -250,7 +252,7 @@
    [`(lpm ,(? avr-reg? reg) z+) (dw (+ #x9005 (avr-reg-d reg)))]
    [`(spm)                      (dw #x95e8)]
    
-   [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))   (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
    
    ; extended load program memory
    [`(elpm)                      (dw #x95d8)]
