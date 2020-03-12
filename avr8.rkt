@@ -93,9 +93,13 @@
 
 (define (avr-imm-6b? i) (between? 0 i 63))
 (define (avr-imm-6b i) (+ (& #x0f i) (<< (& #x30 i) 2)))
+(define (avr-imm-6q i) (+ (<< (bit-field i 5 6) 13)  (<< (bit-field i 3 5) 10 ) (bit-field i 0 3) )
 
 (define (avr-imm-b? i) (between? -128 i 127))
 (define (avr-imm-b i) (+ (& #x0f i) (<< (& #xf0 i) 4)))
+
+(define (avr-imm-16b? i) (between? 0 i 65535))
+(define (aavr-imm-16b i) i)
 
 (define (avr-bit? i) (between? 0 i 7))
 (define (avr-bit-d i) (<< i 4))
@@ -252,6 +256,39 @@
    [`(spm ,(? avr-reg? reg) z+) (dw (+ #x92f8 (avr-reg-d reg)))]
    
    [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   
+   [`(ld ,(? avr-reg? reg) x)  (dw (+ #x900c (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) x+) (dw (+ #x900d (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) x-)  (dw (+ #x900e (avr-reg-d reg)))]
+  
+   [`(st ,(? avr-reg? reg) x)  (dw (+ #x920c (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) x+) (dw (+ #x920d (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) x-) (dw (+ #x920e (avr-reg-d reg)))]
+  
+   
+   [`(ld ,(? avr-reg? reg) y)  (dw (+ #x8008 (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) y+) (dw (+ #x9009 (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) y-) (dw (+ #x900a (avr-reg-d reg)))]
+   [`(ldd ,(? avr-reg? reg) y+ (? avr-imm-6b? q)) (dw (+ #x8008 (avr-imm-6q q)))]
+
+   [`(st ,(? avr-reg? reg) y)  (dw (+ #x8208 (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) y+) (dw (+ #x9209 (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) y-) (dw (+ #x920a (avr-reg-d reg)))]
+   [`(std ,(? avr-reg? reg) y+ (? avr-imm-6b? q)) (dw (+ #x8208 (avr-imm-6q q)))]
+   
+   [`(ld ,(? avr-reg? reg) z)  (dw (+ #x8000 (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) z+) (dw (+ #x9001 (avr-reg-d reg)))]
+   [`(ld ,(? avr-reg? reg) z-) (dw (+ #x9002 (avr-reg-d reg)))]
+   [`(ldd ,(? avr-reg? reg) z+ (? avr-imm-6b? q))  (dw (+ #x8000 (avr-imm-6q q)))]
+
+   [`(st ,(? avr-reg? reg) z)  (dw (+ #x8200 (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) z+) (dw (+ #x9201 (avr-reg-d reg)))]
+   [`(st ,(? avr-reg? reg) z-) (dw (+ #x9202 (avr-reg-d reg)))]
+   [`(std ,(? avr-reg? reg) z+ (? avr-imm-6b? q)) (dw (+ #x8200 (avr-imm-6q q)))]
+
+
+   [`(lds ,(? avr-reg? reg) (? avr-imm-16b? addr))  (dw (+ #x9000 (avr-reg-d reg)) (avr-imm-16b addr))]
+   [`(sts ,(? avr-reg? reg) (? avr-imm-16b? addr)) (dw (+ #x9200 (avr-reg-d reg)) (avr-imm-16b addr))]
    
    ; extended load program memory
    [`(elpm)                      (dw #x95d8)]
