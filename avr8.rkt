@@ -208,7 +208,9 @@
    [`(bst  ,(? avr-reg? src) ,(? avr-bit? bit))  (dw (+ #xfa00 bit (avr-reg-d src)))]
    [`(sbrc ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfc00 bit (avr-reg-d reg)))]
    [`(sbrs ,(? avr-reg? reg) ,(? avr-bit? bit))  (dw (+ #xfe00 bit (avr-reg-d reg)))]
+   
    [`(sbr ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #x6000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   
    [`(ser ,(? avr-reg-hi? src))         (dw (+ #xef0f (avr-reg-hi-d src)))]
    
    [`(brbc ,(? avr-bit? s) ,(? avr-rel-7b? dst)) (dw (+ #xf400 s (avr-rel-7b dst)))]
@@ -253,7 +255,7 @@
    [`(spm)                      (dw #x95e8)]
    [`(spm ,(? avr-reg? reg) z+) (dw (+ #x92f8 (avr-reg-d reg)))]
    
-   [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b))          (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
+   [`(ldi ,(? avr-reg-hi? src) ,(? avr-imm-b? b)) (dw (+ #xe000 (avr-reg-hi-d src) (avr-imm-b b)))]
    
    [`(ld ,(? avr-reg? reg) x)  (dw (+ #x900c (avr-reg-d reg)))]
    [`(ld ,(? avr-reg? reg) x+) (dw (+ #x900d (avr-reg-d reg)))]
@@ -267,22 +269,22 @@
    [`(ld ,(? avr-reg? reg) y)  (dw (+ #x8008 (avr-reg-d reg)))]
    [`(ld ,(? avr-reg? reg) y+) (dw (+ #x9009 (avr-reg-d reg)))]
    [`(ld ,(? avr-reg? reg) y-) (dw (+ #x900a (avr-reg-d reg)))]
-   [`(ldd ,(? avr-reg? reg) y+ ,(? avr-imm-6b? q)) (dw (+ #x8008 (avr-imm-6q q)))]
+   [`(ldd ,(? avr-reg? reg) y+ ,(? avr-imm-6b? q)) (dw (+ #x8008 (avr-reg-d reg) (avr-imm-6q q)))]
 
    [`(st ,(? avr-reg? reg) y)  (dw (+ #x8208 (avr-reg-d reg)))]
    [`(st ,(? avr-reg? reg) y+) (dw (+ #x9209 (avr-reg-d reg)))]
    [`(st ,(? avr-reg? reg) y-) (dw (+ #x920a (avr-reg-d reg)))]
-   [`(std ,(? avr-reg? reg) y+ ,(? avr-imm-6b? q)) (dw (+ #x8208 (avr-imm-6q q)))]
+   [`(std ,(? avr-reg? reg) y+ ,(? avr-imm-6b? q)) (dw (+ #x8208 (avr-reg-d reg) (avr-imm-6q q)))]
    
    [`(ld ,(? avr-reg? reg) z)  (dw (+ #x8000 (avr-reg-d reg)))]
    [`(ld ,(? avr-reg? reg) z+) (dw (+ #x9001 (avr-reg-d reg)))]
    [`(ld ,(? avr-reg? reg) z-) (dw (+ #x9002 (avr-reg-d reg)))]
-   [`(ldd ,(? avr-reg? reg) z+ ,(? avr-imm-6b? q))  (dw (+ #x8000 (avr-imm-6q q)))]
+   [`(ldd ,(? avr-reg? reg) z+ ,(? avr-imm-6b? q))  (dw (+ #x8000 (avr-reg-d reg) (avr-imm-6q q)))]
 
    [`(st ,(? avr-reg? reg) z)  (dw (+ #x8200 (avr-reg-d reg)))]
    [`(st ,(? avr-reg? reg) z+) (dw (+ #x9201 (avr-reg-d reg)))]
    [`(st ,(? avr-reg? reg) z-) (dw (+ #x9202 (avr-reg-d reg)))]
-   [`(std ,(? avr-reg? reg) z+ ,(? avr-imm-6b? q)) (dw (+ #x8200 (avr-imm-6q q)))]
+   [`(std ,(? avr-reg? reg) z+ ,(? avr-imm-6b? q)) (dw (+ #x8200 (avr-reg-d reg) (avr-imm-6q q)))]
 
 
    [`(lds ,(? avr-reg? reg) ,(? avr-imm-16b? addr))  (dw (+ #x9000 (avr-reg-d reg)) (avr-imm-16b addr))]
