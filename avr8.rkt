@@ -188,7 +188,7 @@
    
    [`(xch z ,(? avr-reg? reg)) (dw (+ #x9204 (avr-reg-d reg)))]
    [`(las z ,(? avr-reg? reg)) (dw (+ #x9205 (avr-reg-d reg)))]
-   [`(lac z ,(? avr-reg? reg)) (dw (+ #x9006 (avr-reg-d reg)))]
+   [`(lac z ,(? avr-reg? reg)) (dw (+ #x9206 (avr-reg-d reg)))]
    [`(lat z ,(? avr-reg? reg)) (dw (+ #x9207 (avr-reg-d reg)))]
    
    [`(pop ,(? avr-reg? reg))  (dw (+ #x900f (avr-reg-d reg)))]
